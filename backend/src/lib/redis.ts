@@ -9,10 +9,6 @@ export function queueChannel(doctorId: string): string {
   return `queue:${doctorId}`;
 }
 
-export function tokenCounterKey(doctorId: string, date: string): string {
-  return `doctor:${doctorId}:${date}:next_token`;
-}
-
 export function nowServingKey(doctorId: string, date: string): string {
   return `doctor:${doctorId}:${date}:now_serving`;
 }

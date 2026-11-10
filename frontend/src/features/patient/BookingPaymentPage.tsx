@@ -1,13 +1,30 @@
 import { useEffect, useState } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { Icon } from "../../components/icons";
 import { Alert, Avatar, Button, Card, ErrorState, InfoRow, PageHeader, Reveal, Section, Spinner, StatusChip } from "../../components/ui";
-import { apiErrorMessage } from "../../lib/api";
+import { api, apiErrorMessage } from "../../lib/api";
+import { CheckoutDismissedError, openRazorpayCheckout } from "../../lib/razorpay";
+import type { Appointment } from "../../types/api";
 import { formatDate, formatRupees, formatTime } from "../../lib/formatters";
 import { useAppointment, useCreateOrder, useSimulatePayment } from "./hooks";
 import { useT } from "../../lib/i18n";
 
 const HOLD_MS = 10 * 60 * 1000; // matches the backend's releaseExpiredHolds job
+
+/**
+ * The booking is confirmed by the gateway's webhook, not by the browser, so
+ * after paying we wait for the server to report the appointment as BOOKED.
+ */
+async function waitForBooking(appointmentId: string, timeoutMs = 60_000): Promise<Appointment["status"]> {
+  const deadline = Date.now() + timeoutMs;
+  for (;;) {
+    const res = await api.get<{ appointment: Appointment }>(`/appointments/${appointmentId}`);
+    const status = res.data.appointment.status;
+    if (status !== "PENDING_PAYMENT" || Date.now() > deadline) return status;
+    await new Promise((r) => setTimeout(r, 1500));
+  }
+}
 
 function useCountdown(deadline: number | null) {
   const [now, setNow] = useState(() => Date.now());
@@ -23,11 +40,13 @@ export function BookingPaymentPage() {
   const t = useT();
   const { appointmentId } = useParams();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const { data: appointment, isLoading, isError, refetch } = useAppointment(appointmentId);
   const createOrder = useCreateOrder();
   const simulatePayment = useSimulatePayment();
   const [error, setError] = useState<string | null>(null);
   const [paying, setPaying] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const remaining = useCountdown(appointment ? new Date(appointment.createdAt).getTime() + HOLD_MS : null);
 
   if (isLoading) return <Spinner />;
@@ -40,15 +59,34 @@ export function BookingPaymentPage() {
     setPaying(true);
     try {
       const order = await createOrder.mutateAsync(appointmentId);
-      // Simulated gateway round-trip -- a real Razorpay checkout would open
-      // here; stub mode calls the webhook directly so the full lifecycle
-      // (token issue + QR) is exercised the same way it would be live.
-      await simulatePayment.mutateAsync({ appointmentId, orderId: order.orderId });
-      navigate(`/patient/ticket/${appointmentId}`, { replace: true });
+      if (order.mode === "stub") {
+        await simulatePayment.mutateAsync(appointmentId);
+      } else {
+        await openRazorpayCheckout({
+          keyId: order.keyId,
+          orderId: order.orderId,
+          amount: order.amount,
+          description: appointment?.doctor?.fullName ?? "Consultation",
+        });
+      }
+      setConfirming(true);
+      const status = await waitForBooking(appointmentId);
+      await queryClient.invalidateQueries({ queryKey: ["my-appointments"] });
+      await queryClient.invalidateQueries({ queryKey: ["appointment", appointmentId] });
+      if (status === "BOOKED") {
+        navigate(`/patient/ticket/${appointmentId}`, { replace: true });
+      } else if (status === "PENDING_PAYMENT") {
+        setError(t("Payment received, but confirmation is taking longer than usual. Check My appointments in a minute."));
+      } else {
+        setError(t("This slot is no longer available. If you were charged, the full amount is refunded automatically."));
+      }
     } catch (err) {
-      setError(apiErrorMessage(err));
+      if (!(err instanceof CheckoutDismissedError)) {
+        setError(err instanceof Error && !("isAxiosError" in err) ? err.message : apiErrorMessage(err));
+      }
     } finally {
       setPaying(false);
+      setConfirming(false);
     }
   }
 
@@ -125,8 +163,12 @@ export function BookingPaymentPage() {
       </Reveal>
 
       <Alert>{error}</Alert>
-      <Button size="lg" icon="card" className="w-full" loading={paying} onClick={payNow}>
-        {fee !== undefined ? t("Pay {amount} securely", { amount: formatRupees(fee) }) : t("Pay now")}
+      <Button size="lg" icon="card" className="w-full" loading={paying} disabled={expired} onClick={payNow}>
+        {confirming
+          ? t("Confirming your payment…")
+          : fee !== undefined
+            ? t("Pay {amount} securely", { amount: formatRupees(fee) })
+            : t("Pay now")}
       </Button>
       <p className="flex items-center justify-center gap-1.5 text-xs text-muted">
         <Icon name="lock" className="h-3.5 w-3.5" /> {t("Payments are encrypted and processed by our payment partner")}

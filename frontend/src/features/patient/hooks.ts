@@ -36,43 +36,34 @@ export function useBookSlot() {
   });
 }
 
+export interface PaymentOrder {
+  orderId: string;
+  amount: number; // paise
+  currency: string;
+  keyId: string;
+  mode: "stub" | "razorpay";
+}
+
 export function useCreateOrder() {
   return useMutation({
     mutationFn: async (appointmentId: string) => {
-      const res = await api.post<{ order: { orderId: string; amount: number; currency: string; keyId: string } }>(
-        "/payments/create-order",
-        { appointmentId }
-      );
+      const res = await api.post<{ order: PaymentOrder }>("/payments/create-order", { appointmentId });
       return res.data.order;
     },
   });
 }
 
 /**
- * In stub payment mode there is no real gateway, so the "Pay now" screen
- * calls the same webhook the gateway would call, using a signature the
- * server recognises as a dev stub. Swap this for Razorpay checkout + a real
- * webhook once live keys are configured (PRD section 9).
+ * Local development without Razorpay keys (PAYMENTS_MODE=stub): asks the
+ * server to build and sign the webhook Razorpay would send, which then runs
+ * through the same verification and confirmation code as a real payment.
+ * The endpoint does not exist in production.
  */
 export function useSimulatePayment() {
-  const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (params: { appointmentId: string; orderId: string }) => {
-      const res = await api.post(
-        "/payments/webhook",
-        {
-          event: "payment.captured",
-          appointmentId: params.appointmentId,
-          orderId: params.orderId,
-          gatewayRef: `pay_${params.appointmentId}_${Date.now()}`,
-        },
-        { headers: { "x-webhook-signature": "stub_dev" } }
-      );
-      return res.data as { ok: boolean; token: number; qrToken: string };
-    },
-    onSuccess: (_data, params) => {
-      queryClient.invalidateQueries({ queryKey: ["appointment", params.appointmentId] });
-      queryClient.invalidateQueries({ queryKey: ["my-appointments"] });
+    mutationFn: async (appointmentId: string) => {
+      const res = await api.post("/payments/dev/simulate", { appointmentId });
+      return res.data as { ok: boolean; outcome: string };
     },
   });
 }

@@ -3,21 +3,14 @@ import request from "supertest";
 import { createApp } from "../app";
 import { prisma } from "../lib/prisma";
 import { signQrToken } from "../lib/qr";
+import { bookAndPay as payFlow } from "./paymentHelpers";
 import { createClinicWithAdmin, createDoctor, createAssociate, createPatient, createFutureSlot } from "./factories";
 
 const app = createApp();
 
-async function bookAndPay(doctorId: string, patientToken: string, slotId: string) {
-  const booked = await request(app)
-    .post("/appointments/book")
-    .set("Authorization", `Bearer ${patientToken}`)
-    .send({ slotId });
-  const appointmentId = booked.body.appointment.id;
-  const webhook = await request(app)
-    .post("/payments/webhook")
-    .set("x-webhook-signature", "stub_1")
-    .send({ event: "payment.captured", appointmentId, orderId: "o1", gatewayRef: `pay_${appointmentId}` });
-  return { appointmentId, qrToken: webhook.body.qrToken as string };
+async function bookAndPay(_doctorId: string, patientToken: string, slotId: string) {
+  const { appointmentId, qrToken } = await payFlow(app, patientToken, slotId);
+  return { appointmentId, qrToken };
 }
 
 describe("QR check-in", () => {

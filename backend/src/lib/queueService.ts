@@ -1,16 +1,51 @@
 import { prisma } from "./prisma";
-import { redis, nowServingKey, tokenCounterKey, publishQueueEvent } from "./redis";
+import type { Prisma } from "@prisma/client";
+import { redis, nowServingKey, publishQueueEvent } from "./redis";
+import { HttpError } from "../middleware/errorHandler";
 import { todayKey } from "./dates";
 
-/** Issues the next daily token for a doctor, atomically, via Redis INCR. */
-export async function issueNextToken(doctorId: string, date: string): Promise<number> {
-  const token = await redis.incr(tokenCounterKey(doctorId, date));
+/**
+ * Tokens follow slot time: a patient's token is their slot's position in the
+ * doctor's IST day (10:00 = 1, 10:15 = 2, ...). It is stable because slot
+ * changes that would renumber a day with issued tokens are refused (see
+ * assertDayNotRenumbered), and it resets every day by construction.
+ */
+export async function tokenForSlot(
+  db: Prisma.TransactionClient | typeof prisma,
+  slot: { doctorId: string; slotDate: string; startsAt: Date }
+): Promise<number> {
+  const earlier = await db.slot.count({
+    where: { doctorId: slot.doctorId, slotDate: slot.slotDate, startsAt: { lt: slot.startsAt } },
+  });
+  return earlier + 1;
+}
+
+/**
+ * Adding, moving or removing a slot earlier in a day than an already-issued
+ * token would shift every later slot's position, and so its token. Refuse it.
+ */
+export async function assertDayNotRenumbered(doctorId: string, slotDate: string, startsAt: Date): Promise<void> {
+  const laterIssued = await prisma.appointment.findFirst({
+    where: {
+      doctorId,
+      queueDate: slotDate,
+      queueToken: { not: null },
+      status: { not: "CANCELLED" },
+      slot: { startsAt: { gte: startsAt } },
+    },
+    select: { id: true },
+  });
+  if (laterIssued) {
+    throw new HttpError(409, "Patients already hold tokens after this time on this day; change slots after the last booked one");
+  }
+}
+
+export async function ensureClinicDay(doctorId: string, date: string): Promise<void> {
   await prisma.clinicDay.upsert({
     where: { doctorId_date: { doctorId, date } },
     create: { doctorId, date, status: "OPEN", nowServing: 0 },
     update: {},
   });
-  return token;
 }
 
 export async function getNowServing(doctorId: string, date: string): Promise<number> {

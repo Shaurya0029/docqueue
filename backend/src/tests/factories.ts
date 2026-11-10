@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
 import { signAccessToken } from "../lib/jwt";
-import { toDateKey } from "../lib/dates";
+import { istDateTime, toDateKey } from "../lib/dates";
 
 let counter = 0;
 function uniquePhone(): string {
@@ -82,5 +82,21 @@ export async function createFutureSlot(doctorId: string, hoursFromNow = 2) {
   const endsAt = new Date(startsAt.getTime() + 15 * 60_000);
   return prisma.slot.create({
     data: { doctorId, startsAt, endsAt, slotDate: toDateKey(startsAt) },
+  });
+}
+
+/** A slot at an IST wall-clock time on a given day (yyyy-mm-dd). */
+export async function createSlotAt(doctorId: string, dateKey: string, time: string, minutes = 15) {
+  const startsAt = istDateTime(dateKey, time);
+  return prisma.slot.create({
+    data: { doctorId, startsAt, endsAt: new Date(startsAt.getTime() + minutes * 60_000), slotDate: dateKey },
+  });
+}
+
+/** A slot starting a few minutes from now, so it is on today's queue. */
+export async function createSlotSoon(doctorId: string, minutesFromNow = 5) {
+  const startsAt = new Date(Date.now() + minutesFromNow * 60_000);
+  return prisma.slot.create({
+    data: { doctorId, startsAt, endsAt: new Date(startsAt.getTime() + 15 * 60_000), slotDate: toDateKey(startsAt) },
   });
 }

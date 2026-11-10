@@ -435,4 +435,9 @@ export const HI: Record<string, string> = {
   "Location": "लोकेशन",
   "If you choose “Use my current location”, your device's coordinates are sent once to a location lookup service to find your city. Only the city name is kept, on your device.":
     "अगर आप “मेरी मौजूदा लोकेशन इस्तेमाल करें” चुनते हैं, तो आपका शहर जानने के लिए डिवाइस के निर्देशांक एक बार लोकेशन लुकअप सेवा को भेजे जाते हैं। सिर्फ़ शहर का नाम आपके डिवाइस पर रखा जाता है।",
+  "Confirming your payment…": "आपका भुगतान पक्का किया जा रहा है…",
+  "Payment received, but confirmation is taking longer than usual. Check My appointments in a minute.":
+    "भुगतान मिल गया है, पर पुष्टि में सामान्य से ज़्यादा समय लग रहा है। एक मिनट बाद मेरी अपॉइंटमेंट देखें।",
+  "This slot is no longer available. If you were charged, the full amount is refunded automatically.":
+    "यह स्लॉट अब उपलब्ध नहीं है। अगर आपसे राशि ली गई है, तो पूरी राशि अपने-आप वापस कर दी जाएगी।",
 };

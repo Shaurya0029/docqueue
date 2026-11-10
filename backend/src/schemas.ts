@@ -37,13 +37,6 @@ export const createOrderSchema = z.object({
   appointmentId: z.string().uuid(),
 });
 
-export const webhookSchema = z.object({
-  event: z.string(),
-  appointmentId: z.string().uuid(),
-  orderId: z.string(),
-  gatewayRef: z.string(),
-});
-
 export const cancelAppointmentSchema = z.object({
   reason: z.string().optional(),
 });

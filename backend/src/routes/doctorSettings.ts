@@ -5,6 +5,7 @@ import { requireAuth, requireRole } from "../middleware/auth";
 import { assertDoctorAccess } from "../lib/scope";
 import { toDateKey } from "../lib/dates";
 import { generateSlots } from "../lib/slots";
+import { assertDayNotRenumbered } from "../lib/queueService";
 import {
   slotCreateSchema,
   slotBulkCreateSchema,
@@ -41,12 +42,19 @@ doctorSettingsRouter.post(
       const { pattern, fromDate, toDate } = slotBulkCreateSchema.parse(req.body);
       // Pattern times are IST wall-clock times (see lib/dates.ts).
       const toCreate = generateSlots(doctorId, fromDate, toDate, pattern);
+      const earliestPerDay = new Map<string, Date>();
+      for (const s of toCreate) {
+        const seen = earliestPerDay.get(s.slotDate);
+        if (!seen || s.startsAt < seen) earliestPerDay.set(s.slotDate, s.startsAt);
+      }
+      for (const [day, startsAt] of earliestPerDay) await assertDayNotRenumbered(doctorId, day, startsAt);
       const created = await prisma.slot.createMany({ data: toCreate, skipDuplicates: true });
       res.status(201).json({ created: created.count });
       return;
     }
 
     const { startsAt, endsAt } = slotCreateSchema.parse(req.body);
+    await assertDayNotRenumbered(doctorId, toDateKey(new Date(startsAt)), new Date(startsAt));
     const slot = await prisma.slot.create({
       data: { doctorId, startsAt: new Date(startsAt), endsAt: new Date(endsAt), slotDate: toDateKey(new Date(startsAt)) },
     });
@@ -65,6 +73,10 @@ doctorSettingsRouter.patch(
     if (slot.isBooked) throw new HttpError(409, "Cannot edit a booked slot");
 
     const data = slotUpdateSchema.parse(req.body);
+    await assertDayNotRenumbered(slot.doctorId, slot.slotDate, slot.startsAt);
+    if (data.startsAt) {
+      await assertDayNotRenumbered(slot.doctorId, toDateKey(new Date(data.startsAt)), new Date(data.startsAt));
+    }
     const updated = await prisma.slot.update({
       where: { id: slot.id },
       data: {
@@ -86,6 +98,11 @@ doctorSettingsRouter.delete(
     if (!slot) throw new HttpError(404, "Slot not found");
     await assertDoctorAccess(req.auth!, slot.doctorId);
     if (slot.isBooked) throw new HttpError(409, "Cannot remove a booked slot");
+    await assertDayNotRenumbered(slot.doctorId, slot.slotDate, slot.startsAt);
+    // A slot with cancelled appointments is kept for their history.
+    if (await prisma.appointment.count({ where: { slotId: slot.id } })) {
+      throw new HttpError(409, "This slot has past bookings and cannot be removed");
+    }
 
     await prisma.slot.delete({ where: { id: slot.id } });
     res.json({ ok: true });

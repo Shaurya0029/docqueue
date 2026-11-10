@@ -163,7 +163,7 @@ model Slot {
   isBooked  Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  appointment Appointment?
+  appointments Appointment[]
 
   @@index([doctorId, slotDate])
   @@unique([doctorId, startsAt])
@@ -175,7 +175,7 @@ model Appointment {
   patient       Patient           @relation(fields: [patientId], references: [id])
   doctorId      String
   doctor        Doctor            @relation(fields: [doctorId], references: [id])
-  slotId        String            @unique
+  slotId        String
   slot          Slot              @relation(fields: [slotId], references: [id])
   status        AppointmentStatus @default(PENDING_PAYMENT)
   queueToken    Int?
@@ -192,7 +192,12 @@ model Appointment {
   qrToken  QrToken?
 
   @@index([doctorId, queueDate])
-  @@unique([doctorId, queueDate, queueToken])
+  @@index([slotId])
+  // A slot is reused after a cancellation, so uniqueness only applies to
+  // active appointments. Two partial unique indexes, written by hand in
+  // migration 20261110090000_reusable_slots (Prisma cannot express them):
+  //   one active appointment per slot, and one active holder per token.
+  // If `prisma migrate dev` ever proposes dropping them, keep them.
 }
 
 model Payment {
@@ -201,7 +206,8 @@ model Payment {
   appointment   Appointment   @relation(fields: [appointmentId], references: [id])
   amount        Int
   status        PaymentStatus @default(CREATED)
-  gatewayRef    String?       @unique
+  gatewayRef     String?      @unique // Razorpay payment id (pay_...)
+  gatewayOrderId String?      @unique // Razorpay order id (order_...)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 

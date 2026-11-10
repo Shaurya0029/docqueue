@@ -13,17 +13,23 @@ export async function releaseExpiredHolds(): Promise<number> {
     select: { id: true, slotId: true },
   });
 
+  let released = 0;
   for (const appointment of expired) {
-    await prisma.$transaction([
-      prisma.appointment.update({
-        where: { id: appointment.id },
+    await prisma.$transaction(async (tx) => {
+      // Conditional: if the payment webhook confirmed this booking a moment
+      // ago, the status is no longer PENDING_PAYMENT and nothing is released.
+      const cancelled = await tx.appointment.updateMany({
+        where: { id: appointment.id, status: "PENDING_PAYMENT" },
         data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: "Payment window expired" },
-      }),
-      prisma.slot.update({ where: { id: appointment.slotId }, data: { isBooked: false } }),
-    ]);
+      });
+      if (cancelled.count === 1) {
+        await tx.slot.update({ where: { id: appointment.slotId }, data: { isBooked: false } });
+        released += 1;
+      }
+    });
   }
 
-  return expired.length;
+  return released;
 }
 
 export function startSlotHoldExpiryJob(intervalMs = 60_000): NodeJS.Timeout {

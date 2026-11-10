@@ -85,7 +85,16 @@ appointmentsRouter.get(
     }
     const nowServing = await getNowServing(appointment.doctorId, appointment.queueDate);
     const avgMinutes = await getRollingAvgConsultMinutes(appointment.doctorId);
-    const patientsAhead = Math.max(appointment.queueToken - nowServing - 1, 0);
+    // Tokens follow slot positions, so empty or cancelled slots leave gaps:
+    // count the real patients still waiting ahead, not the token difference.
+    const patientsAhead = await prisma.appointment.count({
+      where: {
+        doctorId: appointment.doctorId,
+        queueDate: appointment.queueDate,
+        status: { in: ["BOOKED", "CHECKED_IN"] },
+        queueToken: { lt: appointment.queueToken, gt: nowServing },
+      },
+    });
     res.json({
       status: appointment.status,
       myToken: appointment.queueToken,
