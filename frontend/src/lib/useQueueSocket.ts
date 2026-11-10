@@ -26,6 +26,10 @@ export function useQueueSocket(doctorId: string | null): { connected: boolean } 
     function invalidate() {
       queryClient.invalidateQueries({ queryKey: ["doctor-queue", activeDoctorId] });
       queryClient.invalidateQueries({ queryKey: ["queue-status"] });
+      // The patient's ticket shows the appointment's own status (Booked, In
+      // consultation, Completed), so refresh it too.
+      queryClient.invalidateQueries({ queryKey: ["appointment"] });
+      queryClient.invalidateQueries({ queryKey: ["my-appointments"] });
       queryClient.invalidateQueries({ queryKey: ["doctor-appointments", activeDoctorId] });
     }
 

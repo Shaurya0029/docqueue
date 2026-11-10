@@ -97,7 +97,7 @@ async function removeLeftoverTestData(): Promise<void> {
   console.log(`Removed leftover test data: ${clinicIds.length} clinic(s), ${doctorIds.length} doctor(s), ${testUserIds.length} user(s)`);
 }
 
-async function main() {
+export async function seed(): Promise<void> {
   await removeLeftoverTestData();
   const password = await bcrypt.hash("password123", 10);
 
@@ -176,9 +176,14 @@ async function main() {
   console.log("  Patient phones:  +919800000004, +919800000007 (OTP is 123456 in stub mode)");
 }
 
-main()
-  .catch((err) => {
-    console.error(err);
-    process.exit(1);
-  })
-  .finally(() => prisma.$disconnect());
+export { prisma as seedPrisma };
+
+// Run only when executed directly (npm run seed), not when imported.
+if (require.main === module) {
+  seed()
+    .catch((err) => {
+      console.error(err);
+      process.exit(1);
+    })
+    .finally(() => prisma.$disconnect());
+}

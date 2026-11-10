@@ -91,7 +91,7 @@ export function TicketPage() {
 
             <div className="flex flex-col items-center gap-2 px-5 pb-6 pt-3">
               <div className="rounded-2xl bg-[#fff] p-3 shadow-soft ring-1 ring-slate-100">
-                <QRCodeSVG value={appointment.qrToken?.token ?? ""} size={184} fgColor="#0f172a" />
+                <QRCodeSVG value={appointment.qrToken?.token ?? ""} size={184} fgColor="#0f172a" role="img" aria-label={t("Check-in QR code")} />
               </div>
               {appointment.qrToken?.shortCode && (
                 <p className="text-center text-xs font-medium text-slate-500">

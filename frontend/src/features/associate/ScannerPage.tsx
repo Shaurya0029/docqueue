@@ -19,7 +19,7 @@ export function ScannerPage() {
   const { doctorId } = useActiveDoctor();
   const scanQr = useScanQr();
   const [result, setResult] = useState<ScanResult | null>(null);
-  const [cameraError, setCameraError] = useState<string | null>(null);
+  const [cameraError, setCameraError] = useState<"none" | "denied" | "other" | null>(null);
   const scannerRef = useRef<Html5Qrcode | null>(null);
   const lastTokenRef = useRef<{ token: string; at: number } | null>(null);
   const busyRef = useRef(false);
@@ -35,7 +35,16 @@ export function ScannerPage() {
         (decodedText) => handleScan(decodedText),
         () => {}
       )
-      .catch((err) => setCameraError(String(err)));
+      .catch((err) => {
+        const text = String(err);
+        setCameraError(
+          /NotFound|DevicesNotFound|OverconstrainedError/.test(text)
+            ? "none"
+            : /NotAllowed|Permission/.test(text)
+              ? "denied"
+              : "other"
+        );
+      });
 
     return () => {
       // stop() throws synchronously if the camera never started (no camera / permission denied).
@@ -115,7 +124,15 @@ export function ScannerPage() {
           />
         </div>
       </div>
-      <Alert>{cameraError ? t("Camera unavailable: {error}. Check browser camera permissions.", { error: cameraError }) : null}</Alert>
+      <Alert>
+        {cameraError === "none"
+          ? t("No camera found on this device. Type the check-in code below instead.")
+          : cameraError === "denied"
+            ? t("Camera access is blocked. Allow it in your browser settings, or type the check-in code below.")
+            : cameraError
+              ? t("The camera could not start. Type the check-in code below instead.")
+              : null}
+      </Alert>
 
       <form onSubmit={submitCode} className="rounded-3xl bg-surface p-4 ring-1 ring-slate-200">
         <label htmlFor="checkin-code" className="label">{t("Or type the check-in code")}</label>
@@ -131,7 +148,7 @@ export function ScannerPage() {
             spellCheck={false}
             className="font-mono uppercase tracking-widest"
           />
-          <Button type="submit" loading={scanQr.isPending} disabled={!manualCode.trim()}>
+          <Button type="submit" className="shrink-0 whitespace-nowrap" loading={scanQr.isPending} disabled={!manualCode.trim()}>
             {t("Check in")}
           </Button>
         </div>

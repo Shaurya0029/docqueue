@@ -444,4 +444,9 @@ export const HI: Record<string, string> = {
   "Or type the check-in code": "या चेक-इन कोड लिखें",
   "Check in": "चेक इन करें",
   "Printed under the QR on the patient's ticket.": "मरीज़ के टिकट पर QR के नीचे छपा होता है।",
+  "No camera found on this device. Type the check-in code below instead.": "इस डिवाइस पर कैमरा नहीं मिला। इसके बजाय नीचे चेक-इन कोड लिखें।",
+  "Camera access is blocked. Allow it in your browser settings, or type the check-in code below.":
+    "कैमरा एक्सेस बंद है। ब्राउज़र सेटिंग में इसे चालू करें, या नीचे चेक-इन कोड लिखें।",
+  "The camera could not start. Type the check-in code below instead.": "कैमरा शुरू नहीं हो सका। इसके बजाय नीचे चेक-इन कोड लिखें।",
+  "Check-in QR code": "चेक-इन QR कोड",
 };
