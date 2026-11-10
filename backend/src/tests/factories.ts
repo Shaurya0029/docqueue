@@ -1,6 +1,7 @@
 import bcrypt from "bcryptjs";
 import { prisma } from "../lib/prisma";
 import { signAccessToken } from "../lib/jwt";
+import { toDateKey } from "../lib/dates";
 
 let counter = 0;
 function uniquePhone(): string {
@@ -80,6 +81,6 @@ export async function createFutureSlot(doctorId: string, hoursFromNow = 2) {
   const startsAt = new Date(Date.now() + hoursFromNow * 3_600_000);
   const endsAt = new Date(startsAt.getTime() + 15 * 60_000);
   return prisma.slot.create({
-    data: { doctorId, startsAt, endsAt, slotDate: startsAt.toISOString().slice(0, 10) },
+    data: { doctorId, startsAt, endsAt, slotDate: toDateKey(startsAt) },
   });
 }

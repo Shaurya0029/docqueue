@@ -4,8 +4,7 @@ import { AnimatePresence, motion } from "motion/react";
 import { Icon } from "../../components/icons";
 import { Alert, Avatar, Button, Card, EmptyState, ErrorState, Reveal, Section, Spinner, cx } from "../../components/ui";
 import { apiErrorMessage } from "../../lib/api";
-import { formatDate, formatRupees, formatTime } from "../../lib/formatters";
-import { intlLocale } from "../../lib/locale";
+import { clinicHour, formatDate, formatDayKey, formatRupees, formatTime } from "../../lib/formatters";
 import type { Slot } from "../../types/api";
 import { useBookSlot, useDoctorProfile } from "./hooks";
 import { useT } from "../../lib/i18n";
@@ -102,7 +101,6 @@ export function DoctorProfilePage() {
             {/* Date strip */}
             <div className="no-scrollbar -mx-5 flex gap-2 overflow-x-auto px-5 pb-1">
               {days.map((day) => {
-                const d = new Date(slotsByDay[day][0].startsAt);
                 const active = day === activeDay;
                 return (
                   <button
@@ -119,9 +117,9 @@ export function DoctorProfilePage() {
                     )}
                   >
                     <span className={cx("text-[11px] font-semibold uppercase", active ? "text-white/80" : "text-muted")}>
-                      {d.toLocaleDateString(intlLocale(), { weekday: "short" })}
+                      {formatDayKey(day, { weekday: "short" })}
                     </span>
-                    <span className="text-xl font-extrabold">{d.getDate()}</span>
+                    <span className="text-xl font-extrabold">{Number(day.slice(8))}</span>
                     <span className={cx("text-[10px] font-semibold", active ? "text-white/80" : "text-muted")}>
                       {t("{n} slots", { n: slotsByDay[day].length })}
                     </span>
@@ -133,7 +131,7 @@ export function DoctorProfilePage() {
             {/* Time slots */}
             <div className="mt-5 space-y-4">
               {PERIODS.map((period) => {
-                const slots = daySlots.filter((s) => period.test(new Date(s.startsAt).getHours()));
+                const slots = daySlots.filter((s) => period.test(clinicHour(s.startsAt)));
                 if (slots.length === 0) return null;
                 return (
                   <div key={period.label}>

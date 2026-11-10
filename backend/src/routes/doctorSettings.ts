@@ -4,6 +4,7 @@ import { asyncHandler, HttpError } from "../middleware/errorHandler";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { assertDoctorAccess } from "../lib/scope";
 import { toDateKey } from "../lib/dates";
+import { generateSlots } from "../lib/slots";
 import {
   slotCreateSchema,
   slotBulkCreateSchema,
@@ -38,30 +39,9 @@ doctorSettingsRouter.post(
 
     if (req.body && Array.isArray((req.body as { pattern?: unknown }).pattern)) {
       const { pattern, fromDate, toDate } = slotBulkCreateSchema.parse(req.body);
-      const from = new Date(`${fromDate}T00:00:00.000Z`);
-      const to = new Date(`${toDate}T00:00:00.000Z`);
-      const toCreate: { doctorId: string; startsAt: Date; endsAt: Date; slotDate: string }[] = [];
-
-      for (let d = new Date(from); d <= to; d.setUTCDate(d.getUTCDate() + 1)) {
-        const weekday = d.getUTCDay();
-        const dayPatterns = pattern.filter((p) => p.weekday === weekday);
-        for (const p of dayPatterns) {
-          const dateKey = toDateKey(d);
-          const [startH, startM] = p.startTime.split(":").map(Number);
-          const [endH, endM] = p.endTime.split(":").map(Number);
-          let cursor = new Date(d);
-          cursor.setUTCHours(startH, startM, 0, 0);
-          const dayEnd = new Date(d);
-          dayEnd.setUTCHours(endH, endM, 0, 0);
-          while (cursor.getTime() + p.slotMinutes * 60000 <= dayEnd.getTime()) {
-            const slotEnd = new Date(cursor.getTime() + p.slotMinutes * 60000);
-            toCreate.push({ doctorId, startsAt: new Date(cursor), endsAt: slotEnd, slotDate: dateKey });
-            cursor = slotEnd;
-          }
-        }
-      }
-
-      const created = await prisma.slot.createMany({ data: toCreate });
+      // Pattern times are IST wall-clock times (see lib/dates.ts).
+      const toCreate = generateSlots(doctorId, fromDate, toDate, pattern);
+      const created = await prisma.slot.createMany({ data: toCreate, skipDuplicates: true });
       res.status(201).json({ created: created.count });
       return;
     }

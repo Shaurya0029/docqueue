@@ -2,6 +2,7 @@ import { ErrorState, PageHeader, Spinner } from "../../components/ui";
 import { QueueBoard } from "../../components/QueueBoard";
 import { useQueueSocket } from "../../lib/useQueueSocket";
 import { intlLocale } from "../../lib/locale";
+import { CLINIC_TZ } from "../../lib/formatters";
 import { useCallNext, useDoctorQueue, useMarkComplete, useMarkNoShow, useMyDoctorProfile } from "./hooks";
 import { useT } from "../../lib/i18n";
 
@@ -23,7 +24,7 @@ export function TodayPage() {
   return (
     <>
       <PageHeader
-        eyebrow={new Date().toLocaleDateString(intlLocale(), { weekday: "long", day: "numeric", month: "short" })}
+        eyebrow={new Date().toLocaleDateString(intlLocale(), { weekday: "long", day: "numeric", month: "short", timeZone: CLINIC_TZ })}
         title={t("Today's queue")}
         subtitle={waiting === 1 ? t("1 patient checked in and waiting") : t("{n} patients checked in and waiting", { n: waiting })}
       />

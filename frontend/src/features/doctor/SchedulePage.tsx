@@ -1,16 +1,13 @@
 import { useState } from "react";
 import { Icon } from "../../components/icons";
 import { Card, EmptyState, ErrorState, Input, PageHeader, Skeleton, StatusChip, cx, stagger } from "../../components/ui";
-import { formatTime, todayKey } from "../../lib/formatters";
-import { intlLocale } from "../../lib/locale";
+import { addDaysKey, formatDayKey, formatTime, todayKey } from "../../lib/formatters";
 import { useDoctorAppointments, useMyDoctorProfile } from "./hooks";
 import { useT } from "../../lib/i18n";
 
 /** yyyy-mm-dd in local time, offset from today by `delta` days. */
 function dayKey(delta: number) {
-  const d = new Date();
-  d.setDate(d.getDate() + delta);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  return addDaysKey(todayKey(), delta);
 }
 
 export function SchedulePage() {
@@ -37,7 +34,6 @@ export function SchedulePage() {
 
       <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 lg:mx-0 lg:grid lg:grid-cols-7 lg:px-0">
         {week.map((key) => {
-          const d = new Date(`${key}T00:00:00`);
           const active = key === date;
           return (
             <button
@@ -51,9 +47,9 @@ export function SchedulePage() {
               )}
             >
               <span className={cx("text-xs font-semibold uppercase", active ? "text-white/80" : "text-muted")}>
-                {d.toLocaleDateString(intlLocale(), { weekday: "short" })}
+                {formatDayKey(key, { weekday: "short" })}
               </span>
-              <span className="text-2xl font-extrabold">{d.getDate()}</span>
+              <span className="text-2xl font-extrabold">{Number(key.slice(8))}</span>
               {key === todayKey() && <span className={cx("mt-0.5 h-1.5 w-1.5 rounded-full", active ? "bg-surface" : "bg-brand-500")} />}
             </button>
           );

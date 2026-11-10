@@ -3,6 +3,7 @@ import { Card, EmptyState, ErrorState, Input, PageHeader, Skeleton, stagger } fr
 import { Icon } from "../../components/icons";
 import { useAuditLog } from "./hooks";
 import { intlLocale } from "../../lib/locale";
+import { CLINIC_TZ } from "../../lib/formatters";
 import { useT } from "../../lib/i18n";
 
 export function AuditLogPage() {
@@ -32,7 +33,7 @@ export function AuditLogPage() {
                   {log.targetType} {log.targetId.slice(0, 8)} · {t("by {id}", { id: log.actorUserId.slice(0, 8) })}
                 </p>
               </div>
-              <span className="shrink-0 text-xs font-medium text-muted">{new Date(log.createdAt).toLocaleString(intlLocale())}</span>
+              <span className="shrink-0 text-xs font-medium text-muted">{new Date(log.createdAt).toLocaleString(intlLocale(), { timeZone: CLINIC_TZ })}</span>
             </div>
           ))}
         </Card>

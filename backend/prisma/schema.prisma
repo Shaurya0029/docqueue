@@ -166,6 +166,7 @@ model Slot {
   appointment Appointment?
 
   @@index([doctorId, slotDate])
+  @@unique([doctorId, startsAt])
 }
 
 model Appointment {

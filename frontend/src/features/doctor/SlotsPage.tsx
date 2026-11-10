@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Alert, Button, Card, EmptyState, ErrorState, Field, Input, PageHeader, Section, Skeleton, cx } from "../../components/ui";
 import { Icon } from "../../components/icons";
 import { apiErrorMessage } from "../../lib/api";
-import { formatDate, formatTime, todayKey } from "../../lib/formatters";
+import { addDaysKey, formatDate, formatTime, todayKey } from "../../lib/formatters";
 import { useCreateBulkSlots, useDeleteSlot, useDoctorSlots, useMyDoctorProfile } from "./hooks";
 import { useT } from "../../lib/i18n";
 
@@ -21,11 +21,7 @@ export function SlotsPage() {
   const [endTime, setEndTime] = useState("17:00");
   const [slotMinutes, setSlotMinutes] = useState(15);
   const [fromDate, setFromDate] = useState(todayKey());
-  const [toDate, setToDate] = useState(() => {
-    const d = new Date();
-    d.setDate(d.getDate() + 13);
-    return d.toISOString().slice(0, 10);
-  });
+  const [toDate, setToDate] = useState(() => addDaysKey(todayKey(), 13));
   const [error, setError] = useState<string | null>(null);
   const [created, setCreated] = useState<number | null>(null);
 
