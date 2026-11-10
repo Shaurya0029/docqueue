@@ -92,6 +92,8 @@ export interface QueueStatus {
   status: AppointmentStatus;
   myToken: number | null;
   nowServing: number | null;
+  /** Real patients still waiting before this one (tokens can have gaps). */
+  patientsAhead: number | null;
   estimatedWaitMinutes: number | null;
 }
 

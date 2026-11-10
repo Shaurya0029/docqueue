@@ -1,3 +1,4 @@
+import { clinicHour } from "../../lib/formatters";
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { Icon } from "../../components/icons";
@@ -11,7 +12,7 @@ import { useT } from "../../lib/i18n";
 const SPECIALIZATIONS = ["General Physician", "Dermatologist", "Pediatrician", "Cardiologist", "Dentist"];
 
 function greeting() {
-  const h = new Date().getHours();
+  const h = clinicHour(new Date().toISOString());
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
 

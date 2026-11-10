@@ -49,7 +49,7 @@ export function TicketPage() {
 
   const myToken = appointment.queueToken ?? 0;
   const nowServing = queueStatus?.nowServing ?? 0;
-  const ahead = Math.max(myToken - nowServing - 1, 0);
+  const ahead = queueStatus?.patientsAhead ?? 0;
   const progress = myToken ? Math.min(100, Math.round((nowServing / myToken) * 100)) : 0;
   const isYourTurn = appointment.status === "IN_CONSULTATION" || (myToken > 0 && nowServing === myToken);
 

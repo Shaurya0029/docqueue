@@ -47,7 +47,7 @@ appointmentsRouter.get(
   asyncHandler(async (req, res) => {
     const appointments = await prisma.appointment.findMany({
       where: { patientId: req.auth!.profileId },
-      include: { doctor: true, slot: true, payment: true },
+      include: { doctor: { include: { clinic: true } }, slot: true, payment: true },
       orderBy: { createdAt: "desc" },
     });
     res.json({ appointments });
@@ -61,7 +61,7 @@ appointmentsRouter.get(
   asyncHandler(async (req, res) => {
     const appointment = await prisma.appointment.findUnique({
       where: { id: req.params.id },
-      include: { doctor: true, slot: true, payment: true, qrToken: true },
+      include: { doctor: { include: { clinic: true } }, slot: true, payment: true, qrToken: true },
     });
     if (!appointment || appointment.patientId !== req.auth!.profileId) {
       throw new HttpError(404, "Appointment not found");
@@ -80,7 +80,7 @@ appointmentsRouter.get(
       throw new HttpError(404, "Appointment not found");
     }
     if (!appointment.queueToken || !appointment.queueDate) {
-      res.json({ status: appointment.status, myToken: null, nowServing: null, estimatedWaitMinutes: null });
+      res.json({ status: appointment.status, myToken: null, nowServing: null, patientsAhead: null, estimatedWaitMinutes: null });
       return;
     }
     const nowServing = await getNowServing(appointment.doctorId, appointment.queueDate);
@@ -99,6 +99,7 @@ appointmentsRouter.get(
       status: appointment.status,
       myToken: appointment.queueToken,
       nowServing,
+      patientsAhead,
       estimatedWaitMinutes: Math.round(patientsAhead * avgMinutes),
     });
   })

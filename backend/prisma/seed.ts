@@ -29,7 +29,7 @@ const DOCTORS = [
   {
     phone: "+919800000005",
     fullName: "Dr. Rohan Iyer",
-    specialization: "Paediatrician",
+    specialization: "Pediatrician",
     consultationFee: 700,
     avgConsultMinutes: 15,
     bio: "Child health and vaccinations, 10 years in practice.",
@@ -170,7 +170,7 @@ async function main() {
 
   console.log(`Seed complete (${created} new slots, ${from} to ${to}, Mon-Fri 10:00-17:00 IST, 15 min):`);
   console.log("  Admin login:     +919800000001 / password123");
-  console.log("  Doctor logins:   +919800000002 (General Physician), +919800000005 (Paediatrician),");
+  console.log("  Doctor logins:   +919800000002 (General Physician), +919800000005 (Pediatrician),");
   console.log("                   +919800000006 (Dermatologist) / password123");
   console.log("  Associate login: +919800000003 / password123 (assigned to all three doctors)");
   console.log("  Patient phones:  +919800000004, +919800000007 (OTP is 123456 in stub mode)");

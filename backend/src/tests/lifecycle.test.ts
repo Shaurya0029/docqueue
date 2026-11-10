@@ -90,6 +90,7 @@ describe("queue tokens", () => {
 
     const status = await request(app).get(`/appointments/${a1030.appointmentId}/queue-status`).set("Authorization", `Bearer ${late.token}`);
     expect(status.body.myToken).toBe(3);
+    expect(status.body.patientsAhead).toBe(1);
     expect(status.body.estimatedWaitMinutes).toBe(10); // one real patient ahead x 10 min, not two
   });
 
@@ -123,5 +124,20 @@ describe("queue tokens", () => {
     const second = await createPatient();
     const { webhook } = await bookAndPay(app, second.token, slot.id);
     expect(webhook.body.outcome).toBe("confirmed");
+  });
+});
+
+describe("patient appointment views", () => {
+  it("include the doctor's clinic, which the ticket and bookings pages render", async () => {
+    const { clinic } = await createClinicWithAdmin();
+    const { doctor } = await createDoctor(clinic.id);
+    const { token: patientToken } = await createPatient();
+    const slot = await createFutureSlot(doctor.id);
+    const { appointmentId } = await bookAndPay(app, patientToken, slot.id);
+
+    const one = await request(app).get(`/appointments/${appointmentId}`).set("Authorization", `Bearer ${patientToken}`);
+    expect(one.body.appointment.doctor.clinic).toMatchObject({ name: clinic.name, address: clinic.address });
+    const mine = await request(app).get("/appointments/mine").set("Authorization", `Bearer ${patientToken}`);
+    expect(mine.body.appointments[0].doctor.clinic.name).toBe(clinic.name);
   });
 });
