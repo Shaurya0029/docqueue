@@ -1,0 +1,263 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  PATIENT
+  DOCTOR
+  ASSOCIATE
+  ADMIN
+}
+
+enum AppointmentStatus {
+  PENDING_PAYMENT
+  BOOKED
+  CHECKED_IN
+  IN_CONSULTATION
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentStatus {
+  CREATED
+  PAID
+  FAILED
+  REFUNDED
+}
+
+enum RefundStatus {
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+enum ClinicDayStatus {
+  OPEN
+  PAUSED
+  CLOSED
+}
+
+enum NotificationChannel {
+  SMS
+  PUSH
+}
+
+enum NotificationType {
+  BOOKING_CONFIRMED
+  REMINDER
+  QUEUE_UPDATE
+  CANCELLED
+  REFUND_ISSUED
+}
+
+enum NotificationStatus {
+  SENT
+  FAILED
+}
+
+model User {
+  id           String   @id @default(uuid())
+  phoneNumber  String   @unique
+  passwordHash String?
+  role         Role
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+
+  patient    Patient?
+  admin      Admin?
+  doctor     Doctor?
+  associate  Associate?
+  auditLogs  AuditLog[]      @relation("ActorAuditLogs")
+  notifications Notification[]
+}
+
+model Patient {
+  id            String   @id @default(uuid())
+  userId        String   @unique
+  user          User     @relation(fields: [userId], references: [id])
+  fullName      String?
+  address       String?
+  idDocumentRef String?
+  consentAt     DateTime?
+  createdAt     DateTime @default(now())
+
+  appointments Appointment[]
+}
+
+model Admin {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  fullName  String?
+  createdAt DateTime @default(now())
+
+  clinics Clinic[]
+}
+
+model Clinic {
+  id        String   @id @default(uuid())
+  name      String
+  address   String?
+  adminId   String
+  admin     Admin    @relation(fields: [adminId], references: [id])
+  createdAt DateTime @default(now())
+
+  doctors    Doctor[]
+  associates Associate[]
+}
+
+model Doctor {
+  id               String   @id @default(uuid())
+  userId           String   @unique
+  user             User     @relation(fields: [userId], references: [id])
+  clinicId         String
+  clinic           Clinic   @relation(fields: [clinicId], references: [id])
+  fullName         String
+  specialization   String
+  consultationFee  Int
+  avgConsultMinutes Int     @default(15)
+  bio              String?
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  slots          Slot[]
+  appointments   Appointment[]
+  clinicDays     ClinicDay[]
+  associateLinks AssociateDoctor[]
+}
+
+model Associate {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  clinicId  String
+  clinic    Clinic   @relation(fields: [clinicId], references: [id])
+  createdAt DateTime @default(now())
+
+  assignedDoctors AssociateDoctor[]
+}
+
+model AssociateDoctor {
+  id          String    @id @default(uuid())
+  associateId String
+  associate   Associate @relation(fields: [associateId], references: [id])
+  doctorId    String
+  doctor      Doctor    @relation(fields: [doctorId], references: [id])
+
+  @@unique([associateId, doctorId])
+}
+
+model Slot {
+  id        String   @id @default(uuid())
+  doctorId  String
+  doctor    Doctor   @relation(fields: [doctorId], references: [id])
+  startsAt  DateTime
+  endsAt    DateTime
+  slotDate  String
+  isBooked  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  appointment Appointment?
+
+  @@index([doctorId, slotDate])
+}
+
+model Appointment {
+  id            String            @id @default(uuid())
+  patientId     String
+  patient       Patient           @relation(fields: [patientId], references: [id])
+  doctorId      String
+  doctor        Doctor            @relation(fields: [doctorId], references: [id])
+  slotId        String            @unique
+  slot          Slot              @relation(fields: [slotId], references: [id])
+  status        AppointmentStatus @default(PENDING_PAYMENT)
+  queueToken    Int?
+  queueDate     String?
+  cancelledAt   DateTime?
+  cancelReason  String?
+  checkedInAt   DateTime?
+  calledAt      DateTime?
+  completedAt   DateTime?
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  payment  Payment?
+  qrToken  QrToken?
+
+  @@index([doctorId, queueDate])
+  @@unique([doctorId, queueDate, queueToken])
+}
+
+model Payment {
+  id            String        @id @default(uuid())
+  appointmentId String        @unique
+  appointment   Appointment   @relation(fields: [appointmentId], references: [id])
+  amount        Int
+  status        PaymentStatus @default(CREATED)
+  gatewayRef    String?       @unique
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  refund Refund?
+}
+
+model Refund {
+  id         String       @id @default(uuid())
+  paymentId  String       @unique
+  payment    Payment      @relation(fields: [paymentId], references: [id])
+  amount     Int
+  status     RefundStatus @default(PENDING)
+  gatewayRef String?
+  createdAt  DateTime     @default(now())
+}
+
+model QrToken {
+  id            String      @id @default(uuid())
+  appointmentId String      @unique
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+  token         String      @unique
+  expiresAt     DateTime
+  usedAt        DateTime?
+  createdAt     DateTime    @default(now())
+}
+
+model AuditLog {
+  id           String   @id @default(uuid())
+  actorUserId  String
+  actor        User     @relation("ActorAuditLogs", fields: [actorUserId], references: [id])
+  action       String
+  targetType   String
+  targetId     String
+  metadata     String?
+  createdAt    DateTime @default(now())
+
+  @@index([actorUserId, createdAt])
+}
+
+model Notification {
+  id        String              @id @default(uuid())
+  userId    String
+  user      User                @relation(fields: [userId], references: [id])
+  type      NotificationType
+  channel   NotificationChannel
+  status    NotificationStatus
+  payload   String?
+  sentAt    DateTime            @default(now())
+}
+
+model ClinicDay {
+  id         String          @id @default(uuid())
+  doctorId   String
+  doctor     Doctor          @relation(fields: [doctorId], references: [id])
+  date       String
+  status     ClinicDayStatus @default(OPEN)
+  nowServing Int             @default(0)
+
+  @@unique([doctorId, date])
+}

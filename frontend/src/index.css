@@ -1,0 +1,160 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  /* Default theme (MEDORA Blue, light). src/lib/theme.ts overrides these at runtime. */
+  :root {
+    --font-sans: "Plus Jakarta Sans", "Noto Sans Devanagari";
+    --canvas: 244 247 255;
+    --surface: 255 255 255;
+    --ink: 23 33 59;
+    --muted: 92 106 132;
+    --c-brand-50: 244 247 255;
+    --t-brand-50: 244 247 255;
+    --c-brand-100: 230 237 255;
+    --t-brand-100: 230 237 255;
+    --c-brand-200: 204 219 255;
+    --t-brand-200: 204 219 255;
+    --c-brand-300: 163 192 255;
+    --t-brand-300: 163 192 255;
+    --c-brand-400: 120 166 255;
+    --t-brand-400: 120 166 255;
+    --c-brand-500: 71 121 245;
+    --t-brand-500: 71 121 245;
+    --c-brand-600: 49 87 213;
+    --t-brand-600: 49 87 213;
+    --c-brand-700: 39 69 176;
+    --t-brand-700: 39 69 176;
+    --c-brand-800: 33 58 140;
+    --t-brand-800: 33 58 140;
+    --c-brand-900: 30 51 111;
+    --t-brand-900: 30 51 111;
+    --c-brand-950: 20 31 69;
+    --t-brand-950: 20 31 69;
+    --c-accent-50: 246 245 255;
+    --t-accent-50: 246 245 255;
+    --c-accent-100: 233 231 255;
+    --t-accent-100: 233 231 255;
+    --c-accent-200: 214 210 255;
+    --t-accent-200: 214 210 255;
+    --c-accent-300: 185 177 255;
+    --t-accent-300: 185 177 255;
+    --c-accent-400: 152 139 248;
+    --t-accent-400: 152 139 248;
+    --c-accent-500: 124 108 238;
+    --t-accent-500: 124 108 238;
+    --c-accent-600: 103 83 221;
+    --t-accent-600: 103 83 221;
+    --c-accent-700: 86 66 190;
+    --t-accent-700: 86 66 190;
+    --c-accent-800: 70 55 154;
+    --t-accent-800: 70 55 154;
+    --c-accent-900: 58 49 123;
+    --t-accent-900: 58 49 123;
+    --c-accent-950: 37 31 82;
+    --t-accent-950: 37 31 82;
+    --c-amber-50: 255 251 235;
+    --t-amber-50: 255 251 235;
+    --c-amber-100: 254 243 199;
+    --t-amber-100: 254 243 199;
+    --c-amber-200: 253 230 138;
+    --t-amber-200: 253 230 138;
+    --c-amber-300: 252 211 77;
+    --t-amber-300: 252 211 77;
+    --c-amber-400: 251 191 36;
+    --t-amber-400: 251 191 36;
+    --c-amber-500: 245 158 11;
+    --t-amber-500: 245 158 11;
+    --c-amber-600: 217 119 6;
+    --t-amber-600: 217 119 6;
+    --c-amber-700: 180 83 9;
+    --t-amber-700: 180 83 9;
+    --c-amber-800: 146 64 14;
+    --t-amber-800: 146 64 14;
+    --c-amber-900: 120 53 15;
+    --t-amber-900: 120 53 15;
+    --c-amber-950: 69 26 3;
+    --t-amber-950: 69 26 3;
+    --c-slate-50: 244 247 255;
+    --c-slate-100: 237 241 250;
+    --c-slate-200: 223 229 242;
+    --c-slate-300: 198 207 226;
+    --c-slate-400: 133 143 166;
+    --c-slate-500: 95 109 135;
+    --c-slate-600: 78 91 117;
+    --c-slate-700: 58 71 98;
+    --c-slate-800: 38 49 77;
+    --c-slate-900: 23 33 59;
+    --c-slate-950: 14 21 40;
+    --g1: 49 87 213;
+    --g2: 71 121 245;
+    --g3: 93 141 250;
+    --success: 18 133 90;
+    --t-success: 15 122 80;
+    --danger: 201 60 60;
+    --t-danger: 192 54 54;
+    --success-soft: 227 246 236;
+    --danger-soft: 253 236 236;
+
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  body {
+    @apply bg-canvas font-sans text-ink antialiased transition-colors duration-300;
+    background-image:
+      radial-gradient(56rem 36rem at 0% -10%, rgb(var(--g3) / 0.16), transparent 60%),
+      radial-gradient(44rem 32rem at 100% 0%, rgb(var(--c-accent-100) / 0.7), transparent 60%);
+    background-attachment: fixed;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply tracking-tight text-ink;
+  }
+
+  ::selection {
+    @apply bg-brand-200 text-brand-950;
+  }
+
+  :focus-visible {
+    @apply outline-none ring-2 ring-brand-500 ring-offset-2 ring-offset-surface;
+  }
+}
+
+@layer components {
+  .glass {
+    @apply border border-surface/70 bg-surface/80 backdrop-blur-xl;
+  }
+
+  .text-gradient {
+    @apply bg-brand-gradient bg-clip-text text-transparent;
+  }
+
+  .label {
+    @apply mb-1.5 block text-sm font-semibold text-ink;
+  }
+
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

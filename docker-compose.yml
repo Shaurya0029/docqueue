@@ -1,0 +1,42 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: docqueue
+      POSTGRES_PASSWORD: docqueue
+      POSTGRES_DB: docqueue
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    ports:
+      - "6380:6379"
+
+  api:
+    build:
+      context: ./backend
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - redis
+    environment:
+      DATABASE_URL: postgresql://docqueue:docqueue@postgres:5432/docqueue
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: dev-secret-change-me
+      JWT_REFRESH_SECRET: dev-refresh-secret-change-me
+      PORT: 4000
+      CORS_ORIGIN: http://localhost:5173
+      NODE_ENV: development
+      PAYMENTS_MODE: stub
+      SMS_MODE: stub
+    ports:
+      - "4000:4000"
+    command: sh -c "npx prisma migrate deploy && npm run seed && node dist/server.js"
+
+volumes:
+  pgdata:
