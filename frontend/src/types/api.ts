@@ -85,7 +85,7 @@ export interface Appointment {
   doctor?: DoctorProfile;
   slot?: Slot;
   payment?: Payment | null;
-  qrToken?: { token: string; expiresAt: string } | null;
+  qrToken?: { token: string; shortCode: string | null; expiresAt: string; usedAt: string | null } | null;
 }
 
 export interface QueueStatus {

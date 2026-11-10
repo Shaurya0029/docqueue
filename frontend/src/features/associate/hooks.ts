@@ -20,8 +20,9 @@ export function useDoctorQueue(doctorId: string | null) {
 
 export function useScanQr() {
   return useMutation({
-    mutationFn: async (token: string) =>
-      (await api.post<{ name: string | null; queueToken: number | null; paymentStatus: string }>("/appointments/qr/scan", { token })).data,
+    /** Either the scanned QR value or the short code typed at the desk. */
+    mutationFn: async (input: { token: string } | { code: string }) =>
+      (await api.post<{ name: string | null; queueToken: number | null; paymentStatus: string }>("/appointments/qr/scan", input)).data,
   });
 }
 

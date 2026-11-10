@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Html5Qrcode } from "html5-qrcode";
 import { AnimatePresence, motion } from "motion/react";
 import { Icon } from "../../components/icons";
-import { Alert, Button, PageHeader } from "../../components/ui";
+import { Alert, Button, Input, PageHeader } from "../../components/ui";
 import { apiErrorMessage } from "../../lib/api";
 import { useActiveDoctor } from "./ActiveDoctorContext";
 import { useScanQr } from "./hooks";
@@ -52,6 +52,29 @@ export function ScannerPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  const [manualCode, setManualCode] = useState("");
+
+  function submitCode(event: FormEvent) {
+    event.preventDefault();
+    const code = manualCode.trim();
+    if (!code || busyRef.current) return;
+    busyRef.current = true;
+    scanQr.mutate(
+      { code },
+      {
+        onSuccess: (data) => {
+          setResult({ kind: "success", name: data.name, token: data.queueToken, paymentStatus: data.paymentStatus });
+          setManualCode("");
+          busyRef.current = false;
+        },
+        onError: (err) => {
+          setResult({ kind: "error", message: apiErrorMessage(err) });
+          busyRef.current = false;
+        },
+      }
+    );
+  }
+
   function handleScan(token: string) {
     const now = Date.now();
     // Debounce: ignore the same QR firing repeatedly while held in frame.
@@ -60,7 +83,7 @@ export function ScannerPage() {
     lastTokenRef.current = { token, at: now };
     busyRef.current = true;
 
-    scanQr.mutate(token, {
+    scanQr.mutate({ token }, {
       onSuccess: (data) => {
         setResult({ kind: "success", name: data.name, token: data.queueToken, paymentStatus: data.paymentStatus });
         busyRef.current = false;
@@ -93,6 +116,27 @@ export function ScannerPage() {
         </div>
       </div>
       <Alert>{cameraError ? t("Camera unavailable: {error}. Check browser camera permissions.", { error: cameraError }) : null}</Alert>
+
+      <form onSubmit={submitCode} className="rounded-3xl bg-surface p-4 ring-1 ring-slate-200">
+        <label htmlFor="checkin-code" className="label">{t("Or type the check-in code")}</label>
+        <div className="flex gap-2">
+          <Input
+            id="checkin-code"
+            icon="qr"
+            value={manualCode}
+            onChange={(e) => setManualCode(e.target.value)}
+            placeholder="ABCD-1234"
+            autoComplete="off"
+            autoCapitalize="characters"
+            spellCheck={false}
+            className="font-mono uppercase tracking-widest"
+          />
+          <Button type="submit" loading={scanQr.isPending} disabled={!manualCode.trim()}>
+            {t("Check in")}
+          </Button>
+        </div>
+        <p className="mt-2 text-xs text-muted">{t("Printed under the QR on the patient's ticket.")}</p>
+      </form>
 
       </div>
       <div>

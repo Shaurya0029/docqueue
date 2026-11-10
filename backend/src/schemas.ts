@@ -41,9 +41,12 @@ export const cancelAppointmentSchema = z.object({
   reason: z.string().optional(),
 });
 
-export const qrScanSchema = z.object({
-  token: z.string(),
-});
+export const qrScanSchema = z
+  .object({
+    token: z.string().min(1).optional(), // the scanned QR value
+    code: z.string().min(1).max(20).optional(), // the short code typed at the desk
+  })
+  .refine((v) => Boolean(v.token) !== Boolean(v.code), { message: "Send either token or code" });
 
 export const slotCreateSchema = z.object({
   startsAt: z.string().datetime(),

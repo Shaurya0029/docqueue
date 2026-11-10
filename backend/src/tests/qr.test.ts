@@ -56,4 +56,28 @@ describe("QR check-in", () => {
       .send({ token });
     expect(res.status).toBe(409);
   });
+
+  it("checks in with the typed short code, once, and only for an assigned doctor", async () => {
+    const { clinic } = await createClinicWithAdmin();
+    const { doctor } = await createDoctor(clinic.id);
+    const { doctor: otherDoctor } = await createDoctor(clinic.id);
+    const { token: associateToken } = await createAssociate(clinic.id, [doctor.id]);
+    const { token: outsiderToken } = await createAssociate(clinic.id, [otherDoctor.id]);
+    const { token: patientToken } = await createPatient();
+    const slot = await createFutureSlot(doctor.id);
+    const { appointmentId } = await bookAndPay(doctor.id, patientToken, slot.id);
+    const { shortCode } = await prisma.qrToken.findUniqueOrThrow({ where: { appointmentId } });
+    expect(shortCode).toMatch(/^[0-9A-Z]{8}$/);
+    const typed = `${shortCode!.slice(0, 4).toLowerCase()}-${shortCode!.slice(4)}`;
+
+    const outsider = await request(app).post("/appointments/qr/scan").set("Authorization", `Bearer ${outsiderToken}`).send({ code: typed });
+    expect(outsider.status).toBe(403);
+
+    const ok = await request(app).post("/appointments/qr/scan").set("Authorization", `Bearer ${associateToken}`).send({ code: typed });
+    expect(ok.status).toBe(200);
+    const again = await request(app).post("/appointments/qr/scan").set("Authorization", `Bearer ${associateToken}`).send({ code: shortCode });
+    expect(again.status).toBe(409);
+    const wrong = await request(app).post("/appointments/qr/scan").set("Authorization", `Bearer ${associateToken}`).send({ code: "ZZZZZZZZ" });
+    expect(wrong.status).toBe(400);
+  });
 });

@@ -440,4 +440,8 @@ export const HI: Record<string, string> = {
     "भुगतान मिल गया है, पर पुष्टि में सामान्य से ज़्यादा समय लग रहा है। एक मिनट बाद मेरी अपॉइंटमेंट देखें।",
   "This slot is no longer available. If you were charged, the full amount is refunded automatically.":
     "यह स्लॉट अब उपलब्ध नहीं है। अगर आपसे राशि ली गई है, तो पूरी राशि अपने-आप वापस कर दी जाएगी।",
+  "Check-in code": "चेक-इन कोड",
+  "Or type the check-in code": "या चेक-इन कोड लिखें",
+  "Check in": "चेक इन करें",
+  "Printed under the QR on the patient's ticket.": "मरीज़ के टिकट पर QR के नीचे छपा होता है।",
 };

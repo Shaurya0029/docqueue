@@ -3,7 +3,7 @@ import { prisma } from "../lib/prisma";
 import { asyncHandler, HttpError } from "../middleware/errorHandler";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { qrScanSchema } from "../schemas";
-import { verifyQrToken } from "../lib/qr";
+import { normalizeShortCode, verifyQrToken } from "../lib/qr";
 import { assertDoctorAccess } from "../lib/scope";
 import { assertTransition } from "../lib/lifecycle";
 import { publishQueueUpdate } from "../lib/queueService";
@@ -16,17 +16,21 @@ qrRouter.post(
   requireAuth,
   requireRole("ASSOCIATE"),
   asyncHandler(async (req, res) => {
-    const { token } = qrScanSchema.parse(req.body);
-    const decoded = verifyQrToken(token);
-    if (!decoded) throw new HttpError(400, "Invalid QR code");
-
-    const qrRecord = await prisma.qrToken.findUnique({ where: { token } });
+    const body = qrScanSchema.parse(req.body);
+    let qrRecord;
+    if (body.token) {
+      if (!verifyQrToken(body.token)) throw new HttpError(400, "Invalid QR code");
+      qrRecord = await prisma.qrToken.findUnique({ where: { token: body.token } });
+    } else {
+      qrRecord = await prisma.qrToken.findUnique({ where: { shortCode: normalizeShortCode(body.code!) } });
+    }
     if (!qrRecord) throw new HttpError(400, "Invalid QR code");
     if (qrRecord.usedAt) throw new HttpError(409, "QR code already used");
     if (qrRecord.expiresAt.getTime() < Date.now()) throw new HttpError(409, "QR code expired");
+    const token = qrRecord.token;
 
     const appointment = await prisma.appointment.findUnique({
-      where: { id: decoded.appointmentId },
+      where: { id: qrRecord.appointmentId },
       include: { patient: true, payment: true },
     });
     if (!appointment) throw new HttpError(404, "Appointment not found");

@@ -3,7 +3,7 @@ import { prisma } from "./prisma";
 import { refundPayment, verifyWebhookSignature } from "./payments";
 import { tokenForSlot, ensureClinicDay } from "./queueService";
 import { publishQueueEvent } from "./redis";
-import { signQrToken } from "./qr";
+import { generateShortCode, signQrToken } from "./qr";
 import { sendNotification } from "./sms";
 import { writeAuditLog } from "./audit";
 import { HttpError } from "../middleware/errorHandler";
@@ -121,7 +121,12 @@ async function confirmCapturedPayment(captured: {
     });
     await tx.qrToken.upsert({
       where: { appointmentId: appointment.id },
-      create: { appointmentId: appointment.id, token: signQrToken(appointment.id, expiresAtMs), expiresAt: new Date(expiresAtMs) },
+      create: {
+        appointmentId: appointment.id,
+        token: signQrToken(appointment.id, expiresAtMs),
+        shortCode: generateShortCode(),
+        expiresAt: new Date(expiresAtMs),
+      },
       update: { token: signQrToken(appointment.id, expiresAtMs), expiresAt: new Date(expiresAtMs), usedAt: null },
     });
     return { token, queueDate: slot.slotDate };

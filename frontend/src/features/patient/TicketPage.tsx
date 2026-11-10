@@ -93,6 +93,14 @@ export function TicketPage() {
               <div className="rounded-2xl bg-[#fff] p-3 shadow-soft ring-1 ring-slate-100">
                 <QRCodeSVG value={appointment.qrToken?.token ?? ""} size={184} fgColor="#0f172a" />
               </div>
+              {appointment.qrToken?.shortCode && (
+                <p className="text-center text-xs font-medium text-slate-500">
+                  {t("Check-in code")}{" "}
+                  <span data-testid="checkin-code" className="font-mono text-base font-bold tracking-widest text-ink">
+                    {appointment.qrToken.shortCode.slice(0, 4)}-{appointment.qrToken.shortCode.slice(4)}
+                  </span>
+                </p>
+              )}
               <p className="flex items-center gap-1.5 text-xs font-medium text-slate-400">
                 <Icon name="scan" className="h-4 w-4" /> {t("Show this at the front desk to check in")}
               </p>

@@ -229,6 +229,7 @@ model QrToken {
   appointmentId String      @unique
   appointment   Appointment @relation(fields: [appointmentId], references: [id])
   token         String      @unique
+  shortCode     String?     @unique // typed at the desk when the QR cannot be scanned
   expiresAt     DateTime
   usedAt        DateTime?
   createdAt     DateTime    @default(now())
