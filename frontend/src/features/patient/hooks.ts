@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
-import type { Appointment, DoctorProfile, DoctorSummary, QueueStatus } from "../../types/api";
+import type { Appointment, DoctorProfile, DoctorSummary, QueueStatus, Slot } from "../../types/api";
 
 export function useDoctorSearch(params: { name?: string; specialization?: string; city?: string }) {
   return useQuery({
@@ -125,5 +125,40 @@ export function useCancelAppointment() {
       queryClient.invalidateQueries({ queryKey: ["appointment", params.appointmentId] });
       queryClient.invalidateQueries({ queryKey: ["my-appointments"] });
     },
+  });
+}
+
+export interface AlternativeDoctor {
+  id: string;
+  fullName: string;
+  specialization: string;
+  consultationFee: number;
+  isVerified: boolean;
+  clinic: { id: string; name: string; address: string | null };
+  nextSlot: Slot;
+}
+
+export function useAlternativeDoctors(doctorId: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ["doctor-alternatives", doctorId],
+    queryFn: async () => (await api.get<{ doctors: AlternativeDoctor[] }>(`/doctors/${doctorId}/alternatives`)).data.doctors,
+    enabled: !!doctorId && enabled,
+  });
+}
+
+export function useSlotAlert(doctorId: string | undefined) {
+  return useQuery({
+    queryKey: ["slot-alert", doctorId],
+    queryFn: async () => (await api.get<{ subscribed: boolean }>(`/doctors/${doctorId}/slot-alert`)).data.subscribed,
+    enabled: !!doctorId,
+  });
+}
+
+export function useSetSlotAlert(doctorId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (subscribe: boolean) =>
+      (await (subscribe ? api.put : api.delete)<{ subscribed: boolean }>(`/doctors/${doctorId}/slot-alert`)).data.subscribed,
+    onSuccess: (subscribed) => queryClient.setQueryData(["slot-alert", doctorId], subscribed),
   });
 }

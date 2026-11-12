@@ -6,6 +6,7 @@ import { assertDoctorAccess } from "../lib/scope";
 import { toDateKey } from "../lib/dates";
 import { generateSlots } from "../lib/slots";
 import { assertDayNotRenumbered } from "../lib/queueService";
+import { notifySlotAlerts } from "../lib/slotAlerts";
 import {
   slotCreateSchema,
   slotBulkCreateSchema,
@@ -49,6 +50,7 @@ doctorSettingsRouter.post(
       }
       for (const [day, startsAt] of earliestPerDay) await assertDayNotRenumbered(doctorId, day, startsAt);
       const created = await prisma.slot.createMany({ data: toCreate, skipDuplicates: true });
+      if (created.count > 0) await notifySlotAlerts(doctorId);
       res.status(201).json({ created: created.count });
       return;
     }
@@ -58,6 +60,7 @@ doctorSettingsRouter.post(
     const slot = await prisma.slot.create({
       data: { doctorId, startsAt: new Date(startsAt), endsAt: new Date(endsAt), slotDate: toDateKey(new Date(startsAt)) },
     });
+    await notifySlotAlerts(doctorId);
     res.status(201).json({ slot });
   })
 );

@@ -2,29 +2,12 @@ import { beforeEach } from "vitest";
 import { prisma } from "../lib/prisma";
 import { redis } from "../lib/redis";
 
-// Order matters: children before parents, respecting FK constraints.
-const TABLES = [
-  "AuditLog",
-  "Notification",
-  "Refund",
-  "QrToken",
-  "Payment",
-  "Appointment",
-  "ClinicDay",
-  "Slot",
-  "AssociateDoctor",
-  "Associate",
-  "Doctor",
-  "Clinic",
-  "Admin",
-  "Patient",
-  "User",
-];
-
+/** Empties every application table (all of them, so new tables need no change here). */
 export async function resetDb(): Promise<void> {
-  for (const table of TABLES) {
-    await prisma.$executeRawUnsafe(`DELETE FROM "${table}"`);
-  }
+  const tables = await prisma.$queryRaw<{ tablename: string }[]>`
+    SELECT tablename FROM pg_tables WHERE schemaname = 'public' AND tablename <> '_prisma_migrations'`;
+  if (tables.length === 0) return;
+  await prisma.$executeRawUnsafe(`TRUNCATE ${tables.map((t) => `"${t.tablename}"`).join(", ")} CASCADE`);
 }
 
 beforeEach(async () => {

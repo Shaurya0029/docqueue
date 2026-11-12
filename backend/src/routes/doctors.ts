@@ -3,6 +3,8 @@ import { prisma } from "../lib/prisma";
 import { asyncHandler, HttpError } from "../middleware/errorHandler";
 import { doctorSearchSchema } from "../schemas";
 import { cityAliases } from "../lib/cityAliases";
+import { requireAuth, requireRole } from "../middleware/auth";
+import { isSubscribed, nextAvailableDoctors, subscribeToSlots, unsubscribeFromSlots } from "../lib/slotAlerts";
 
 export const doctorsRouter = Router();
 
@@ -32,6 +34,42 @@ doctorsRouter.get(
         nextSlot: d.slots[0] ?? null,
       })),
     });
+  })
+);
+
+doctorsRouter.get(
+  "/:id/alternatives",
+  asyncHandler(async (req, res) => {
+    res.json({ doctors: await nextAvailableDoctors(req.params.id) });
+  })
+);
+
+doctorsRouter.get(
+  "/:id/slot-alert",
+  requireAuth,
+  requireRole("PATIENT"),
+  asyncHandler(async (req, res) => {
+    res.json({ subscribed: await isSubscribed(req.auth!.profileId, req.params.id) });
+  })
+);
+
+doctorsRouter.put(
+  "/:id/slot-alert",
+  requireAuth,
+  requireRole("PATIENT"),
+  asyncHandler(async (req, res) => {
+    await subscribeToSlots(req.auth!.profileId, req.params.id);
+    res.json({ subscribed: true });
+  })
+);
+
+doctorsRouter.delete(
+  "/:id/slot-alert",
+  requireAuth,
+  requireRole("PATIENT"),
+  asyncHandler(async (req, res) => {
+    await unsubscribeFromSlots(req.auth!.profileId, req.params.id);
+    res.json({ subscribed: false });
   })
 );
 

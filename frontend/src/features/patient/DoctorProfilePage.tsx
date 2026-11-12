@@ -2,12 +2,13 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { Icon } from "../../components/icons";
-import { Alert, Avatar, Button, Card, EmptyState, ErrorState, Reveal, Section, Spinner, cx } from "../../components/ui";
+import { Alert, Avatar, Button, Card, ErrorState, Reveal, Section, Spinner, cx } from "../../components/ui";
 import { apiErrorMessage } from "../../lib/api";
 import { clinicHour, formatDate, formatDayKey, formatRupees, formatTime } from "../../lib/formatters";
 import type { Slot } from "../../types/api";
 import { useBookSlot, useDoctorProfile } from "./hooks";
 import { useT } from "../../lib/i18n";
+import { NoSlotsPanel } from "./NoSlotsPanel";
 
 const PERIODS = [
   { label: "Morning", icon: "sparkles", test: (h: number) => h < 12 },
@@ -94,7 +95,7 @@ export function DoctorProfilePage() {
       </div>
       <div className="min-w-0 space-y-5">
       {days.length === 0 ? (
-        <EmptyState icon="calendar" title={t("No upcoming slots")} hint={t("This doctor hasn't opened new slots yet. Check back soon.")} />
+        <NoSlotsPanel doctorId={doctor.id} doctorName={doctor.fullName} />
       ) : (
         <Reveal delay={0.08}>
           <Section title={t("Choose a date")} icon="calendar">

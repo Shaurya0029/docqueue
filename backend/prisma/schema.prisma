@@ -59,6 +59,7 @@ enum NotificationType {
   QUEUE_UPDATE
   CANCELLED
   REFUND_ISSUED
+  SLOTS_AVAILABLE
 }
 
 enum NotificationStatus {
@@ -95,6 +96,21 @@ model Patient {
   createdAt     DateTime @default(now())
 
   appointments Appointment[]
+  slotAlerts   SlotAlert[]
+}
+
+// "Notify me when slots open" for a doctor with no free slots.
+model SlotAlert {
+  id         String    @id @default(uuid())
+  patientId  String
+  patient    Patient   @relation(fields: [patientId], references: [id])
+  doctorId   String
+  doctor     Doctor    @relation(fields: [doctorId], references: [id])
+  createdAt  DateTime  @default(now())
+  notifiedAt DateTime? // set once the patient has been told; a new request clears it
+
+  @@unique([patientId, doctorId])
+  @@index([doctorId, notifiedAt])
 }
 
 model Admin {
@@ -137,6 +153,7 @@ model Doctor {
   appointments   Appointment[]
   clinicDays     ClinicDay[]
   associateLinks AssociateDoctor[]
+  slotAlerts     SlotAlert[]
 }
 
 model Associate {
