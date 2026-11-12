@@ -52,6 +52,15 @@ Staff log in with phone and password on the **Clinic staff** tab. Patients use t
 
 The seed gives every doctor 15-minute slots, Monday to Friday, 10:00 to 17:00 IST, for the next 14 days. Run `npm run seed` again to top the slots up.
 
+## SMS and OTP
+
+`SMS_MODE` in `backend/.env`:
+
+- **`stub`** (default): messages are printed to the API log (`[sms:console] ...`) and the OTP is always `123456`. Refused when `NODE_ENV=production`.
+- **`live`**: sends through `SMS_PROVIDER`. No provider is implemented yet: add a class implementing `SmsProvider` in `backend/src/lib/sms/` and a case in `getSmsProvider()`.
+
+OTPs are stored hashed in Redis for 5 minutes. Limits: 5 requests per phone per hour, 20 per IP per hour, and 5 wrong guesses per code. Behind a load balancer, set `TRUST_PROXY=1` so the per-IP limit sees the patient's IP.
+
 ## Payments
 
 `PAYMENTS_MODE` in `backend/.env`:
@@ -66,6 +75,16 @@ A booking is confirmed **only** by Razorpay's signed webhook, never by the brows
 3. In the Razorpay dashboard (test mode), add a webhook for `payment.captured` pointing at `<that URL>/payments/webhook`, with the same secret.
 4. Restart the API, book a slot and pay with one of [Razorpay's test cards](https://razorpay.com/docs/payments/payments/test-card-details/).
 
+## Background jobs
+
+The API runs these on a timer; each is safe to run on several instances at once.
+
+| Job | Every | What it does |
+| --- | --- | --- |
+| Release expired holds | 1 min | Cancels bookings unpaid after 10 minutes and frees the slot |
+| Reminders | 1 min | Texts patients whose slot starts within the hour, once |
+| Close past days | 15 min | Marks bookings from earlier days that never checked in as no-show; closes the day |
+
 ## Tests
 
 ```bash
@@ -75,9 +94,9 @@ DATABASE_URL=postgresql://docqueue:docqueue@localhost:5433/docqueue_test npx pri
 npm test
 npm run typecheck && npm run lint
 
-# Frontend typecheck, lint and build
+# Frontend typecheck, lint, Hindi coverage and build
 cd frontend
-npm run lint && npm run build
+npm run lint && npm run i18n:check && npm run build
 
 # End-to-end journey (Playwright): patient books and pays, associate checks in,
 # doctor calls next, the patient's ticket must update within 2 seconds.
@@ -91,13 +110,33 @@ The end-to-end test starts its own API (port 4100) and frontend (port 5174) agai
 
 CI (`.github/workflows/ci.yml`) runs all three on every push and pull request.
 
+`npm run i18n:check` fails if any patient-facing string lacks Hindi. Wrap English strings shown on screen in `t("...")`, and strings kept in constants (menu labels, status names) in `msg("...")`, then add the Hindi to `frontend/src/lib/i18n.hi.ts`. `node scripts/check-i18n.mjs --all` also lists the staff portals' gaps.
+
 ## How the core flow works
 
 1. **Book.** The patient picks a slot; it is held for 10 minutes while they pay. A background job releases unpaid holds.
 2. **Pay.** Razorpay's `payment.captured` webhook (HMAC-signed) confirms the booking. Repeated or parallel deliveries confirm exactly once. A payment that arrives after the hold expired is honoured if the slot is still free, and refunded in full if not.
 3. **Token.** The queue token is the slot's position in the doctor's day (10:00 = 1, 10:15 = 2, …), so tokens follow appointment time and reset daily.
 4. **Check in.** The associate scans the ticket's QR or types the 8-character code printed under it. Each code works once.
-5. **Live queue.** "Call next" publishes through Redis to a WebSocket per doctor. The patient's ticket updates in about a second, and falls back to polling if the socket drops.
+5. **Walk-ins.** The associate adds a patient without the app (name, phone, spoken consent); they take the doctor's next free slot today and get their token by SMS.
+6. **Live queue.** "Call next" publishes through Redis to a WebSocket per doctor. The patient's ticket updates in about a second, and falls back to polling if the socket drops.
+
+## Patient features
+
+- **Cancel:** full refund 2+ hours before the slot, none after. The clinic can cancel with a full refund, or refund a late cancellation anyway.
+- **Reschedule:** to another free slot of the same doctor, up to 2 hours before; new token and QR.
+- **Notifications by SMS** (each logged, each sent once): booking confirmed, 1-hour reminder, "you are 3rd in line", cancelled, refund issued, slots opened.
+- **No slots?** "Notify me when slots open" or "Show next available doctor".
+- **Verified doctors:** the tick appears only after the clinic admin approves the doctor's medical registration.
+- **Hindi** throughout the patient portal (Appearance & language menu), English as fallback.
+- **Your data (DPDP):** download everything held about you, or delete your account, from Profile. Deletion erases identity and keeps anonymous visit and payment records for the clinic's accounts.
+
+## Privacy and access rules
+
+- Every doctor-scoped query uses the doctor allowed by the login token, never a URL parameter. Tests try every staff route as the wrong doctor, an unassigned associate, another clinic's admin and a patient.
+- Staff changes to patient data are audited, and so are staff views of queues and schedules (once per staff member per 15 minutes).
+- ID numbers are stored as the last 4 digits only.
+- Deleted patients and deactivated staff lose access immediately.
 
 ## Project layout
 
