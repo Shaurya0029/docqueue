@@ -3,9 +3,12 @@ import { ZodError } from "zod";
 
 export class HttpError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  /** Optional machine-readable reason the frontend can branch on, e.g. CONSENT_REQUIRED. */
+  code?: string;
+  constructor(status: number, message: string, code?: string) {
     super(message);
     this.status = status;
+    this.code = code;
   }
 }
 
@@ -19,7 +22,7 @@ export function errorHandler(err: unknown, req: Request, res: Response, _next: N
     return;
   }
   if (err instanceof HttpError) {
-    res.status(err.status).json({ error: err.message });
+    res.status(err.status).json({ error: err.message, ...(err.code ? { code: err.code } : {}) });
     return;
   }
   // eslint-disable-next-line no-console

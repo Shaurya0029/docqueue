@@ -1,5 +1,6 @@
 import { beforeEach } from "vitest";
 import { prisma } from "../lib/prisma";
+import { redis } from "../lib/redis";
 
 // Order matters: children before parents, respecting FK constraints.
 const TABLES = [
@@ -28,4 +29,6 @@ export async function resetDb(): Promise<void> {
 
 beforeEach(async () => {
   await resetDb();
+  if (!/\/2$/.test(process.env.REDIS_URL ?? "")) throw new Error("Tests must use Redis database 2");
+  await redis.flushdb();
 });

@@ -46,6 +46,12 @@ api.interceptors.response.use(
   }
 );
 
+/** The server's machine-readable error code, e.g. CONSENT_REQUIRED. */
+export function apiErrorCode(err: unknown): string | undefined {
+  if (!axios.isAxiosError(err)) return undefined;
+  return (err.response?.data as { code?: string } | undefined)?.code;
+}
+
 export function apiErrorMessage(err: unknown): string {
   if (axios.isAxiosError(err)) {
     const data = err.response?.data as { error?: string } | undefined;

@@ -4,7 +4,7 @@ import { refundPayment, verifyWebhookSignature } from "./payments";
 import { tokenForSlot, ensureClinicDay } from "./queueService";
 import { publishQueueEvent } from "./redis";
 import { generateShortCode, signQrToken } from "./qr";
-import { sendNotification } from "./sms";
+import { sendNotification } from "./notifications";
 import { writeAuditLog } from "./audit";
 import { HttpError } from "../middleware/errorHandler";
 

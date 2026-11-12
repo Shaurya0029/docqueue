@@ -6,7 +6,8 @@ import type { AuthResponse, AuthUser } from "../../types/api";
 interface AuthContextValue {
   user: AuthUser | null;
   loading: boolean;
-  loginWithOtp: (phoneNumber: string, code: string, fullName?: string) => Promise<void>;
+  /** consent: true only when the patient ticked the consent box (new accounts). */
+  loginWithOtp: (phoneNumber: string, code: string, fullName?: string, consent?: boolean) => Promise<void>;
   loginStaff: (phoneNumber: string, password: string) => Promise<void>;
   logout: () => void;
 }
@@ -46,8 +47,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const loginWithOtp = useCallback(
-    async (phoneNumber: string, code: string, fullName?: string) => {
-      const res = await api.post<AuthResponse>("/auth/otp/verify", { phoneNumber, code, fullName, consent: true });
+    async (phoneNumber: string, code: string, fullName?: string, consent?: boolean) => {
+      const res = await api.post<AuthResponse>("/auth/otp/verify", { phoneNumber, code, fullName, ...(consent ? { consent: true } : {}) });
       applyAuth(res.data);
     },
     [applyAuth]

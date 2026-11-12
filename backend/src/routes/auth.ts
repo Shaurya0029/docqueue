@@ -10,19 +10,16 @@ import {
   staffLoginSchema,
   refreshSchema,
 } from "../schemas";
-import { isOtpRateLimited, recordOtpAttempt, sendOtp, verifyOtp } from "../lib/sms";
+import { checkOtp, requestOtp } from "../lib/otp";
 import { signAccessToken, signRefreshToken, verifyRefreshToken } from "../lib/jwt";
 
 export const authRouter = Router();
 
 authRouter.post(
   "/otp/request",
-  rateLimitByBodyField("phoneNumber", 5, 60 * 60 * 1000),
   asyncHandler(async (req, res) => {
     const { phoneNumber } = otpRequestSchema.parse(req.body);
-    if (isOtpRateLimited(phoneNumber)) throw new HttpError(429, "Too many OTP requests, try again later");
-    recordOtpAttempt(phoneNumber);
-    const { devOtp } = await sendOtp(phoneNumber);
+    const { devOtp } = await requestOtp(phoneNumber, req.ip ?? "unknown");
     res.json({ ok: true, ...(devOtp ? { devOtp } : {}) });
   })
 );
@@ -31,9 +28,16 @@ authRouter.post(
   "/otp/verify",
   asyncHandler(async (req, res) => {
     const { phoneNumber, code, fullName, consent } = otpVerifySchema.parse(req.body);
-    if (!verifyOtp(phoneNumber, code)) throw new HttpError(401, "Invalid or expired OTP");
+    if (!(await checkOtp(phoneNumber, code, false))) throw new HttpError(401, "Invalid or expired OTP");
 
     let user = await prisma.user.findUnique({ where: { phoneNumber }, include: { patient: true } });
+    if (!user && consent !== true) {
+      // DPDP: a new account needs explicit consent. Asked only after the OTP
+      // is proven, so this response does not reveal which numbers exist; the
+      // code stays valid for the retry that carries consent.
+      throw new HttpError(428, "Please accept the privacy notice to create your account", "CONSENT_REQUIRED");
+    }
+    if (!(await checkOtp(phoneNumber, code, true))) throw new HttpError(401, "Invalid or expired OTP");
     if (!user) {
       user = await prisma.user.create({
         data: {
@@ -42,7 +46,7 @@ authRouter.post(
           patient: {
             create: {
               fullName: fullName ?? null,
-              consentAt: consent ? new Date() : null,
+              consentAt: new Date(),
             },
           },
         },

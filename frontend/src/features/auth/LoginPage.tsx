@@ -17,7 +17,7 @@ import {
   isValidIndianMobile,
   toE164India,
 } from "../../components/ui";
-import { api, apiErrorMessage } from "../../lib/api";
+import { api, apiErrorCode, apiErrorMessage } from "../../lib/api";
 import { useAuth } from "./AuthContext";
 import { useT } from "../../lib/i18n";
 
@@ -262,6 +262,8 @@ function PatientOtpLogin() {
   const [code, setCode] = useState("");
   const [fullName, setFullName] = useState("");
   const [devOtp, setDevOtp] = useState<string | null>(null);
+  const [consentNeeded, setConsentNeeded] = useState(false);
+  const [consent, setConsent] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [resendIn, setResendIn] = useState(0);
@@ -300,9 +302,15 @@ function PatientOtpLogin() {
     setError(null);
     setBusy(true);
     try {
-      await loginWithOtp(toE164India(phone), code, fullName.trim() || undefined);
+      await loginWithOtp(toE164India(phone), code, fullName.trim() || undefined, consentNeeded && consent);
       navigate("/");
     } catch (err) {
+      if (apiErrorCode(err) === "CONSENT_REQUIRED") {
+        // New account: the server kept the code valid; ask for consent and retry.
+        setConsentNeeded(true);
+        setError(consentNeeded ? t("Please tick the box to agree before continuing.") : null);
+        return;
+      }
       setError(apiErrorMessage(err));
     } finally {
       setBusy(false);
@@ -366,8 +374,23 @@ function PatientOtpLogin() {
           <Field label={t("Your name")} hint={t("Only needed the first time you sign in.")} error={nameInvalid ? t("Name must be at least 2 characters") : null}>
             <Input icon="user" placeholder={t("Full name")} autoComplete="name" value={fullName} onChange={(e) => setFullName(e.target.value)} />
           </Field>
+          {consentNeeded && (
+            <label className="flex items-start gap-3 rounded-2xl bg-brand-50 p-3 text-sm text-ink ring-1 ring-brand-100">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-5 w-5 shrink-0 accent-brand-600"
+                checked={consent}
+                onChange={(e) => setConsent(e.target.checked)}
+              />
+              <span>
+                {t("I agree that MEDORA may store my name, phone number and appointment details to book and manage my visits, as described in the")}{" "}
+                <Link to="/privacy" className="font-semibold text-brand-600 underline">{t("Privacy policy")}</Link>.{" "}
+                {t("I can download or delete my data at any time from my profile.")}
+              </span>
+            </label>
+          )}
           <Alert>{error}</Alert>
-          <Button type="submit" size="lg" icon="shield" className="w-full" disabled={code.length !== 6 || nameInvalid} loading={busy}>
+          <Button type="submit" size="lg" icon="shield" className="w-full" disabled={code.length !== 6 || nameInvalid || (consentNeeded && !consent)} loading={busy}>
             {t("Verify & continue")}
           </Button>
           <p className="text-center text-sm text-muted">

@@ -449,4 +449,8 @@ export const HI: Record<string, string> = {
     "कैमरा एक्सेस बंद है। ब्राउज़र सेटिंग में इसे चालू करें, या नीचे चेक-इन कोड लिखें।",
   "The camera could not start. Type the check-in code below instead.": "कैमरा शुरू नहीं हो सका। इसके बजाय नीचे चेक-इन कोड लिखें।",
   "Check-in QR code": "चेक-इन QR कोड",
+  "Please tick the box to agree before continuing.": "आगे बढ़ने से पहले कृपया सहमति वाले बॉक्स पर टिक करें।",
+  "I agree that MEDORA may store my name, phone number and appointment details to book and manage my visits, as described in the":
+    "मैं सहमत हूँ कि MEDORA मेरी अपॉइंटमेंट बुक और मैनेज करने के लिए मेरा नाम, फ़ोन नंबर और अपॉइंटमेंट की जानकारी रख सकता है, जैसा कि इसमें बताया गया है:",
+  "I can download or delete my data at any time from my profile.": "मैं अपनी प्रोफ़ाइल से कभी भी अपना डेटा डाउनलोड या डिलीट कर सकता/सकती हूँ।",
 };

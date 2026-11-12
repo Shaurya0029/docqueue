@@ -21,6 +21,11 @@ if (isProduction && paymentsMode === "stub") {
   throw new Error("PAYMENTS_MODE=stub is not allowed when NODE_ENV=production");
 }
 
+const smsMode: "stub" | "live" = process.env.SMS_MODE === "live" ? "live" : "stub";
+if (isProduction && smsMode === "stub") {
+  throw new Error("SMS_MODE=stub is not allowed when NODE_ENV=production");
+}
+
 export const env = {
   port: Number(process.env.PORT ?? 4000),
   nodeEnv,
@@ -30,8 +35,13 @@ export const env = {
   jwtSecret: required("JWT_SECRET"),
   jwtRefreshSecret: required("JWT_REFRESH_SECRET"),
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
+  // Number of reverse proxies in front of the API (0 = none). Needed so
+  // per-IP rate limits see the client's IP, not the load balancer's.
+  trustProxy: Number(process.env.TRUST_PROXY ?? 0),
   paymentsMode,
-  smsMode: (process.env.SMS_MODE ?? "stub") as "stub" | "live",
+  smsMode,
+  smsProvider: process.env.SMS_PROVIDER ?? "",
+  smsApiKey: process.env.SMS_API_KEY ?? "",
   razorpayKeyId: paymentsMode === "razorpay" ? required("RAZORPAY_KEY_ID") : process.env.RAZORPAY_KEY_ID ?? "",
   razorpayKeySecret: paymentsMode === "razorpay" ? required("RAZORPAY_KEY_SECRET") : process.env.RAZORPAY_KEY_SECRET ?? "",
   razorpayWebhookSecret:

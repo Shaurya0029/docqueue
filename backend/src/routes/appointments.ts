@@ -5,7 +5,7 @@ import { requireAuth, requireRole } from "../middleware/auth";
 import { bookAppointmentSchema, cancelAppointmentSchema } from "../schemas";
 import { assertTransition } from "../lib/lifecycle";
 import { getNowServing, getRollingAvgConsultMinutes } from "../lib/queueService";
-import { sendNotification } from "../lib/sms";
+import { sendNotification } from "../lib/notifications";
 import { writeAuditLog } from "../lib/audit";
 
 export const appointmentsRouter = Router();
