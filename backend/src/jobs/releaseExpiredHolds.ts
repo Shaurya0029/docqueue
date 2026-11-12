@@ -1,6 +1,8 @@
 import { prisma } from "../lib/prisma";
 
 const HOLD_MINUTES = 10;
+/** cancelReason of a hold that expired unpaid; only these may be revived by a late payment. */
+export const HOLD_EXPIRED_REASON = "Payment window expired";
 
 /**
  * A booked slot with no payment within 10 minutes is released so an
@@ -20,7 +22,7 @@ export async function releaseExpiredHolds(): Promise<number> {
       // ago, the status is no longer PENDING_PAYMENT and nothing is released.
       const cancelled = await tx.appointment.updateMany({
         where: { id: appointment.id, status: "PENDING_PAYMENT" },
-        data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: "Payment window expired" },
+        data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: HOLD_EXPIRED_REASON },
       });
       if (cancelled.count === 1) {
         await tx.slot.update({ where: { id: appointment.slotId }, data: { isBooked: false } });

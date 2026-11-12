@@ -62,7 +62,12 @@ queueRouter.get(
     const date = String(req.query.date ?? todayKey());
     const appointments = await prisma.appointment.findMany({
       where: { doctorId, queueDate: date },
-      include: { patient: true, slot: true },
+      // Only what the schedule shows: the patient's name, never their profile.
+      include: {
+        patient: { select: { fullName: true } },
+        slot: true,
+        payment: { select: { status: true, amount: true, refund: { select: { status: true, amount: true } } } },
+      },
       orderBy: { queueToken: "asc" },
     });
     res.json({ date, appointments });

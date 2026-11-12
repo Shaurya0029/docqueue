@@ -120,3 +120,23 @@ export function useDoctorEarnings(doctorId: string | null) {
     enabled: !!doctorId,
   });
 }
+
+/** Doctor cancels a booking; the patient is always refunded in full. */
+export function useCancelByClinic(doctorId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { appointmentId: string; reason?: string }) =>
+      (await api.post<{ refund: string }>(`/appointments/${params.appointmentId}/cancel-by-clinic`, { reason: params.reason })).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["doctor-appointments", doctorId] }),
+  });
+}
+
+/** Doctor override: refund a late cancellation, or retry a failed refund. */
+export function useRefundOverride(doctorId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (appointmentId: string) =>
+      (await api.post<{ refund: string }>(`/appointments/${appointmentId}/refund-override`, {})).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["doctor-appointments", doctorId] }),
+  });
+}

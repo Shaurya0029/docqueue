@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { Alert, AnimatedNumber, Button, Card, EmptyState, ErrorState, LiveDot, PageHeader, Spinner, StatusChip, stagger } from "../../components/ui";
 import { Icon } from "../../components/icons";
 import { apiErrorMessage } from "../../lib/api";
@@ -35,7 +35,19 @@ export function TicketPage() {
   if (isLoading) return <Spinner />;
   if (isError || !appointment) return <ErrorState message={t("Could not load your ticket")} onRetry={() => refetch()} />;
 
-  const isActive = appointment.status === "BOOKED" || appointment.status === "CHECKED_IN";
+  const isActive = appointment.status === "BOOKED";
+  const fee = appointment.payment?.amount ?? appointment.doctor?.consultationFee ?? 0;
+  // Same rule as the server (REFUND_CUTOFF_HOURS): 2+ hours before the slot.
+  const refundable = !!appointment.slot && new Date(appointment.slot.startsAt).getTime() - Date.now() >= 2 * 3_600_000;
+  const refund = appointment.payment?.refund;
+  const cancelledHint =
+    refund?.status === "PROCESSED"
+      ? t("A full refund of {amount} was issued to your original payment method. It usually arrives in 5-7 working days.", { amount: formatRupees(refund.amount) })
+      : refund?.status === "FAILED"
+        ? t("Your refund could not be processed automatically. The clinic will contact you.")
+        : appointment.payment?.status === "PAID"
+          ? t("It was cancelled less than 2 hours before the slot, so no refund applies.")
+          : t("No payment was taken for this booking.");
 
   async function handleCancel() {
     if (!appointmentId) return;
@@ -58,7 +70,7 @@ export function TicketPage() {
       <PageHeader eyebrow={t("Live ticket")} title={t("Your ticket")} />
 
       {appointment.status === "CANCELLED" ? (
-        <EmptyState icon="x" title={t("This appointment was cancelled")} hint={t("Any refund will reach your original payment method.")} />
+        <EmptyState icon="x" title={t("This appointment was cancelled")} hint={cancelledHint} />
       ) : (
         <>
           <div className="grid gap-4 lg:grid-cols-[minmax(0,400px)_1fr] lg:items-start lg:gap-6">
@@ -184,17 +196,33 @@ export function TicketPage() {
             <div className="space-y-2">
               <Alert>{cancelError}</Alert>
               {!confirmingCancel ? (
-                <Button variant="ghost" className="w-full !text-danger hover:!bg-danger-soft" onClick={() => setConfirmingCancel(true)}>
-                  {t("Cancel appointment")}
-                </Button>
+                <div className="flex gap-2">
+                  {refundable && (
+                    <Link to={`/patient/reschedule/${appointment.id}`} className="flex-1">
+                      <Button variant="secondary" icon="calendar" className="w-full">
+                        {t("Reschedule")}
+                      </Button>
+                    </Link>
+                  )}
+                  <Button variant="ghost" className="flex-1 !text-danger hover:!bg-danger-soft" onClick={() => setConfirmingCancel(true)}>
+                    {t("Cancel appointment")}
+                  </Button>
+                </div>
               ) : (
-                <div className="flex animate-fade-in gap-2">
+                <div className="animate-fade-in space-y-2">
+                <p className={`rounded-2xl px-3 py-2.5 text-sm font-medium ${refundable ? "bg-success-soft text-success" : "bg-amber-50 text-amber-800"}`}>
+                  {refundable
+                    ? t("You will get a full refund of {amount}.", { amount: formatRupees(fee) })
+                    : t("Your slot is less than 2 hours away, so cancelling now gives no refund.")}
+                </p>
+                <div className="flex gap-2">
                   <Button variant="secondary" className="flex-1" onClick={() => setConfirmingCancel(false)}>
                     {t("Keep it")}
                   </Button>
                   <Button variant="danger" className="flex-1" loading={cancelAppointment.isPending} onClick={handleCancel}>
                     {t("Confirm cancel")}
                   </Button>
+                </div>
                 </div>
               )}
             </div>

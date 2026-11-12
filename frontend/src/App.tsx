@@ -12,6 +12,7 @@ import { HomePage } from "./features/patient/HomePage";
 import { DoctorProfilePage } from "./features/patient/DoctorProfilePage";
 import { BookingPaymentPage } from "./features/patient/BookingPaymentPage";
 import { TicketPage } from "./features/patient/TicketPage";
+import { ReschedulePage } from "./features/patient/ReschedulePage";
 import { AppointmentsPage } from "./features/patient/AppointmentsPage";
 import { ProfilePage } from "./features/patient/ProfilePage";
 
@@ -64,6 +65,7 @@ function AppRoutes() {
         <Route path="doctor/:doctorId" element={<DoctorProfilePage />} />
         <Route path="book/:appointmentId" element={<BookingPaymentPage />} />
         <Route path="ticket/:appointmentId" element={<TicketPage />} />
+        <Route path="reschedule/:appointmentId" element={<ReschedulePage />} />
         <Route path="appointments" element={<AppointmentsPage />} />
         <Route path="profile" element={<ProfilePage />} />
       </Route>

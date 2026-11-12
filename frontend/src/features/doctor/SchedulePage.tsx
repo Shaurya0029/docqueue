@@ -1,13 +1,89 @@
 import { useState } from "react";
 import { Icon } from "../../components/icons";
-import { Card, EmptyState, ErrorState, Input, PageHeader, Skeleton, StatusChip, cx, stagger } from "../../components/ui";
-import { addDaysKey, formatDayKey, formatTime, todayKey } from "../../lib/formatters";
-import { useDoctorAppointments, useMyDoctorProfile } from "./hooks";
+import { Alert, Button, Card, EmptyState, ErrorState, Input, PageHeader, Skeleton, StatusChip, cx, stagger } from "../../components/ui";
+import { addDaysKey, formatDayKey, formatRupees, formatTime, todayKey } from "../../lib/formatters";
+import { apiErrorMessage } from "../../lib/api";
+import type { Appointment } from "../../types/api";
+import { useCancelByClinic, useDoctorAppointments, useMyDoctorProfile, useRefundOverride } from "./hooks";
 import { useT } from "../../lib/i18n";
 
 /** yyyy-mm-dd in local time, offset from today by `delta` days. */
 function dayKey(delta: number) {
   return addDaysKey(todayKey(), delta);
+}
+
+function ScheduleRow({ appointment, doctorId, index }: { appointment: Appointment; doctorId: string | null; index: number }) {
+  const t = useT();
+  const cancel = useCancelByClinic(doctorId);
+  const refundOverride = useRefundOverride(doctorId);
+  const [confirming, setConfirming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const payment = appointment.payment;
+  const refunded = payment?.refund?.status === "PROCESSED";
+  const canRefund = appointment.status === "CANCELLED" && payment?.status === "PAID";
+
+  async function run(action: () => Promise<unknown>) {
+    setError(null);
+    try {
+      await action();
+      setConfirming(false);
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    }
+  }
+
+  return (
+    <Card className="animate-fade-up space-y-3 !p-3.5" style={stagger(index)}>
+      <div className="flex items-center gap-4">
+        <div className="shrink-0 border-r border-slate-100 pr-3 text-center">
+          <p className="whitespace-nowrap text-base font-extrabold text-ink">{appointment.slot ? formatTime(appointment.slot.startsAt) : "–"}</p>
+        </div>
+        <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2">
+          <div className="min-w-0">
+            <p className="truncate font-semibold text-ink">{appointment.patient?.fullName ?? t("Patient")}</p>
+            <p className="flex items-center gap-1.5 text-sm text-muted">
+              <Icon name="ticket" className="h-4 w-4 text-brand-500" />
+              {t("Token #{n}", { n: appointment.queueToken ?? "–" })}
+            </p>
+            {refunded && (
+              <p className="text-sm font-semibold text-success">{t("Refunded {amount}", { amount: formatRupees(payment!.refund!.amount) })}</p>
+            )}
+          </div>
+          <StatusChip status={appointment.status} />
+        </div>
+      </div>
+      {appointment.status === "BOOKED" &&
+        (confirming ? (
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" className="flex-1" onClick={() => setConfirming(false)}>
+              {t("Keep")}
+            </Button>
+            <Button
+              variant="danger"
+              size="sm"
+              className="flex-1"
+              loading={cancel.isPending}
+              onClick={() => run(() => cancel.mutateAsync({ appointmentId: appointment.id }))}
+            >
+              {t("Cancel & refund in full")}
+            </Button>
+          </div>
+        ) : (
+          <Button variant="ghost" size="sm" className="w-full !text-danger" onClick={() => setConfirming(true)}>
+            {t("Cancel this booking")}
+          </Button>
+        ))}
+      {canRefund && (
+        <div className="flex items-center justify-between gap-2 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <span>{payment?.refund?.status === "FAILED" ? t("Refund failed") : t("Cancelled late, not refunded")}</span>
+          <Button size="sm" variant="secondary" loading={refundOverride.isPending} onClick={() => run(() => refundOverride.mutateAsync(appointment.id))}>
+            {t("Refund anyway")}
+          </Button>
+        </div>
+      )}
+      <Alert>{error}</Alert>
+    </Card>
+  );
 }
 
 export function SchedulePage() {
@@ -68,18 +144,7 @@ export function SchedulePage() {
 
       <div className="relative space-y-2.5">
         {appointments?.map((appointment, i) => (
-          <Card key={appointment.id} className="flex animate-fade-up items-center gap-4 !p-3.5" style={stagger(i)}>
-            <div className="w-20 shrink-0 border-r border-slate-100 pr-3 text-center">
-              <p className="text-lg font-extrabold text-ink">{appointment.slot ? formatTime(appointment.slot.startsAt) : "–"}</p>
-            </div>
-            <div className="flex min-w-0 flex-1 flex-wrap items-center justify-between gap-2">
-              <p className="flex items-center gap-1.5 font-semibold text-ink">
-                <Icon name="ticket" className="h-4 w-4 text-brand-500" />
-                {t("Token #{n}", { n: appointment.queueToken ?? "–" })}
-              </p>
-              <StatusChip status={appointment.status} />
-            </div>
-          </Card>
+          <ScheduleRow key={appointment.id} appointment={appointment} doctorId={doctorId} index={i} />
         ))}
       </div>
     </div>

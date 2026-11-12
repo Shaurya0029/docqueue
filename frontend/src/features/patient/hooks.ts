@@ -68,6 +68,19 @@ export function useSimulatePayment() {
   });
 }
 
+export function useRescheduleAppointment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { appointmentId: string; slotId: string }) =>
+      (await api.post<{ ok: boolean; token: number }>(`/appointments/${params.appointmentId}/reschedule`, { slotId: params.slotId })).data,
+    onSuccess: (_data, params) => {
+      queryClient.invalidateQueries({ queryKey: ["appointment", params.appointmentId] });
+      queryClient.invalidateQueries({ queryKey: ["my-appointments"] });
+      queryClient.invalidateQueries({ queryKey: ["doctor-profile"] });
+    },
+  });
+}
+
 export function useMyAppointments() {
   return useQuery({
     queryKey: ["my-appointments"],
@@ -106,7 +119,7 @@ export function useCancelAppointment() {
   return useMutation({
     mutationFn: async (params: { appointmentId: string; reason?: string }) => {
       const res = await api.post(`/appointments/${params.appointmentId}/cancel`, { reason: params.reason });
-      return res.data as { ok: boolean; refunded: boolean };
+      return res.data as { ok: boolean; refund: "PROCESSED" | "FAILED" | "NOT_ELIGIBLE" | "NOT_PAID" };
     },
     onSuccess: (_data, params) => {
       queryClient.invalidateQueries({ queryKey: ["appointment", params.appointmentId] });

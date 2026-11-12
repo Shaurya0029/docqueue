@@ -7,6 +7,7 @@ import { generateShortCode, signQrToken } from "./qr";
 import { sendNotification } from "./notifications";
 import { writeAuditLog } from "./audit";
 import { HttpError } from "../middleware/errorHandler";
+import { HOLD_EXPIRED_REASON } from "../jobs/releaseExpiredHolds";
 
 /** The part of Razorpay's payment.captured / order.paid webhook body we rely on. */
 const razorpayEventSchema = z.object({
@@ -95,6 +96,9 @@ async function confirmCapturedPayment(captured: {
     if (!won) {
       const current = await tx.appointment.findUniqueOrThrow({ where: { id: appointment.id } });
       if (current.status !== "CANCELLED") return null; // already booked by another delivery
+      // Only a hold that expired is revived; a booking the patient or clinic
+      // cancelled stays cancelled and the late payment is refunded.
+      if (current.cancelReason !== HOLD_EXPIRED_REASON) return null;
       // Paid after the 10-minute hold expired. Honour it if the slot is still free.
       const reclaimed = await tx.slot.updateMany({
         where: { id: appointment.slotId, isBooked: false, startsAt: { gt: new Date() } },

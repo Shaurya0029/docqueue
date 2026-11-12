@@ -28,6 +28,18 @@ export function weekdayOf(dateKey: string): number {
   return new Date(`${dateKey}T00:00:00.000Z`).getUTCDay();
 }
 
+/** "Thu, 12 Nov, 10:15 am" in IST, for messages to patients. */
+export function formatIst(date: Date): string {
+  return date.toLocaleString("en-IN", {
+    timeZone: "Asia/Kolkata",
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
 export function addDays(dateKey: string, days: number): string {
   const d = new Date(`${dateKey}T00:00:00.000Z`);
   d.setUTCDate(d.getUTCDate() + days);

@@ -38,7 +38,11 @@ export const createOrderSchema = z.object({
 });
 
 export const cancelAppointmentSchema = z.object({
-  reason: z.string().optional(),
+  reason: z.string().max(300).optional(),
+});
+
+export const rescheduleSchema = z.object({
+  slotId: z.string().uuid(),
 });
 
 export const qrScanSchema = z

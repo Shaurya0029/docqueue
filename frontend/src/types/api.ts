@@ -70,7 +70,8 @@ export interface Payment {
   id: string;
   amount: number;
   status: "CREATED" | "PAID" | "FAILED" | "REFUNDED";
-  gatewayRef: string | null;
+  gatewayRef?: string | null;
+  refund?: { status: "PENDING" | "PROCESSED" | "FAILED"; amount: number } | null;
 }
 
 export interface Appointment {
@@ -86,6 +87,8 @@ export interface Appointment {
   slot?: Slot;
   payment?: Payment | null;
   qrToken?: { token: string; shortCode: string | null; expiresAt: string; usedAt: string | null } | null;
+  cancelReason?: string | null;
+  patient?: { fullName: string | null };
 }
 
 export interface QueueStatus {
