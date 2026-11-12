@@ -4,6 +4,7 @@ import { asyncHandler, HttpError } from "../middleware/errorHandler";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { patientUpdateSchema } from "../schemas";
 import { writeAuditLog } from "../lib/audit";
+import { deletePatientAccount, exportPatientData } from "../lib/patientData";
 
 export const patientRouter = Router();
 
@@ -36,5 +37,31 @@ patientRouter.post(
       targetId: req.auth!.profileId,
     });
     res.json({ ok: true, idDocumentRef: masked });
+  })
+);
+
+/** DPDP: download everything MEDORA holds about me. */
+patientRouter.get(
+  "/export",
+  requireAuth,
+  requireRole("PATIENT"),
+  asyncHandler(async (req, res) => {
+    const data = await exportPatientData(req.auth!.profileId, req.auth!.userId);
+    res.setHeader("Content-Disposition", `attachment; filename="medora-my-data-${new Date().toISOString().slice(0, 10)}.json"`);
+    res.json(data);
+  })
+);
+
+/** DPDP: erase my account. The body must be { "confirm": "DELETE" }. */
+patientRouter.post(
+  "/delete",
+  requireAuth,
+  requireRole("PATIENT"),
+  asyncHandler(async (req, res) => {
+    if ((req.body as { confirm?: string })?.confirm !== "DELETE") {
+      throw new HttpError(400, 'Send { "confirm": "DELETE" } to delete your account');
+    }
+    const result = await deletePatientAccount(req.auth!.profileId, req.auth!.userId);
+    res.json({ ok: true, ...result });
   })
 );

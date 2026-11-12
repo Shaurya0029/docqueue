@@ -12,6 +12,85 @@ interface MeResponse {
   profile: { fullName?: string | null; address?: string | null; idDocumentRef?: string | null };
 }
 
+/** DPDP rights: download everything we hold, or erase the account. */
+function YourDataSection({ onDeleted }: { onDeleted: () => void }) {
+  const t = useT();
+  const [downloading, setDownloading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
+  const [typed, setTyped] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const deleteAccount = useMutation({
+    mutationFn: async () => (await api.post<{ cancelledBookings: number }>("/me/patient/delete", { confirm: "DELETE" })).data,
+  });
+
+  async function download() {
+    setError(null);
+    setDownloading(true);
+    try {
+      const res = await api.get("/me/patient/export", { responseType: "blob" });
+      const url = URL.createObjectURL(res.data as Blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `medora-my-data-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    } finally {
+      setDownloading(false);
+    }
+  }
+
+  async function erase() {
+    setError(null);
+    try {
+      await deleteAccount.mutateAsync();
+      onDeleted();
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    }
+  }
+
+  return (
+    <Section title={t("Your data")} icon="file">
+      <p className="mb-3 text-sm text-muted">{t("Under the DPDP Act you can download your data or delete your account at any time.")}</p>
+      {!confirming ? (
+        <div className="flex flex-wrap gap-2">
+          <Button variant="secondary" icon="file" className="flex-1" loading={downloading} onClick={() => void download()}>
+            {t("Download my data")}
+          </Button>
+          <Button variant="outline" className="flex-1 !text-danger !ring-danger/40" onClick={() => setConfirming(true)}>
+            {t("Delete my account")}
+          </Button>
+        </div>
+      ) : (
+        <div className="space-y-3 rounded-2xl bg-danger-soft p-3 text-sm text-ink">
+          <p className="font-semibold text-danger">{t("This cannot be undone.")}</p>
+          <ul className="list-disc space-y-1 pl-5">
+            <li>{t("Upcoming bookings are cancelled. Those 2+ hours away are refunded in full.")}</li>
+            <li>{t("Your name, phone number, address and messages are erased and you are logged out.")}</li>
+            <li>{t("Clinics keep visit and payment records without your name, as accounting law requires.")}</li>
+          </ul>
+          <Field label={t("Type DELETE to confirm")}>
+            <Input value={typed} onChange={(e) => setTyped(e.target.value)} autoComplete="off" />
+          </Field>
+          <div className="flex gap-2">
+            <Button variant="secondary" className="flex-1" onClick={() => setConfirming(false)}>
+              {t("Keep my account")}
+            </Button>
+            <Button variant="danger" className="flex-1" disabled={typed.trim() !== "DELETE"} loading={deleteAccount.isPending} onClick={() => void erase()}>
+              {t("Delete forever")}
+            </Button>
+          </div>
+        </div>
+      )}
+      <div className="mt-3">
+        <Alert>{error}</Alert>
+      </div>
+    </Section>
+  );
+}
+
 export function ProfilePage() {
   const t = useT();
   const { logout } = useAuth();
@@ -97,7 +176,7 @@ export function ProfilePage() {
       <div className="space-y-5">
       <Section title={t("ID document")} icon="shield">
         <p className="mb-3 text-sm text-muted">
-          {t("Stored encrypted; only the last 4 digits are ever shown.")}
+          {t("Only the last 4 digits are stored. The full number is never saved.")}
           {me?.profile.idDocumentRef && (
             <span className="mt-1 block font-mono font-semibold text-ink">{t("Current: {id}", { id: me.profile.idDocumentRef })}</span>
           )}
@@ -110,17 +189,7 @@ export function ProfilePage() {
         </div>
       </Section>
 
-      <Section title={t("Your data")} icon="file">
-        <p className="mb-3 text-sm text-muted">{t("Under the DPDP Act you can request an export or deletion of your data.")}</p>
-        <div className="flex gap-2">
-          <Button variant="secondary" className="flex-1" onClick={() => alert(t("Export request submitted. We'll email you within 7 days."))}>
-            {t("Export data")}
-          </Button>
-          <Button variant="outline" className="flex-1 !text-danger !ring-danger/40" onClick={() => alert(t("Deletion request submitted. We'll confirm within 7 days."))}>
-            {t("Delete data")}
-          </Button>
-        </div>
-      </Section>
+      <YourDataSection onDeleted={logout} />
 
       </div>
       </div>

@@ -5,6 +5,7 @@ import { verifyAccessToken, type JwtPayload } from "./lib/jwt";
 import { prisma } from "./lib/prisma";
 import { redisSub, queueChannel } from "./lib/redis";
 import { assertDoctorAccess } from "./lib/scope";
+import { isRevoked } from "./lib/revocation";
 
 const channelSockets = new Map<string, Set<WebSocket>>();
 
@@ -83,6 +84,11 @@ export function attachWebSocketServer(httpServer: HttpServer): void {
       auth = verifyAccessToken(token);
     } catch {
       socket.close(4001, "Invalid token");
+      return;
+    }
+
+    if (await isRevoked(auth.userId)) {
+      socket.close(4001, "Account no longer active");
       return;
     }
 

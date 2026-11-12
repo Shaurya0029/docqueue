@@ -8,7 +8,7 @@ import { setNowServing, publishQueueUpdate } from "../lib/queueService";
 import { todayKey } from "../lib/dates";
 import { pauseQueueSchema, walkInSchema } from "../schemas";
 import { addWalkIn } from "../lib/walkIns";
-import { writeAuditLog } from "../lib/audit";
+import { auditStaffRead, writeAuditLog } from "../lib/audit";
 
 export const queueRouter = Router();
 
@@ -38,6 +38,13 @@ queueRouter.get(
       orderBy: { queueToken: "asc" },
     });
     const day = await prisma.clinicDay.findUnique({ where: { doctorId_date: { doctorId, date } } });
+    await auditStaffRead({
+      actorUserId: req.auth!.userId,
+      action: "STAFF_VIEWED_QUEUE",
+      targetType: "DoctorDay",
+      targetId: `${doctorId}:${date}`,
+      patientIds: appointments.map((a) => a.patientId),
+    });
     res.json({
       date,
       status: day?.status ?? "OPEN",
@@ -69,6 +76,13 @@ queueRouter.get(
         payment: { select: { status: true, amount: true, refund: { select: { status: true, amount: true } } } },
       },
       orderBy: { queueToken: "asc" },
+    });
+    await auditStaffRead({
+      actorUserId: req.auth!.userId,
+      action: "STAFF_VIEWED_SCHEDULE",
+      targetType: "DoctorDay",
+      targetId: `${doctorId}:${date}`,
+      patientIds: appointments.map((a) => a.patientId),
     });
     res.json({ date, appointments });
   })

@@ -99,6 +99,7 @@ model Patient {
   idDocumentRef String?
   consentAt     DateTime?
   consentSource String? // "app" (patient ticked the box) or "desk" (told the associate, for walk-ins)
+  deletedAt     DateTime? // DPDP erasure: personal fields cleared, visit and payment records kept anonymously
   createdAt     DateTime @default(now())
 
   appointments Appointment[]

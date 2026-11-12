@@ -14,6 +14,7 @@ import {
  verifyDoctorSchema,
 } from "../schemas";
 import { writeAuditLog } from "../lib/audit";
+import { revokeUserSessions } from "../lib/revocation";
 
 export const adminRouter = Router();
 
@@ -224,6 +225,7 @@ adminRouter.patch(
     await assertClinicAccess(req.auth!, clinicId);
 
     await prisma.user.update({ where: { id: user.id }, data: { isActive: false } });
+    await revokeUserSessions(user.id);
     await writeAuditLog({ actorUserId: req.auth!.userId, action: "USER_DEACTIVATED", targetType: "User", targetId: user.id });
     res.json({ ok: true });
   })

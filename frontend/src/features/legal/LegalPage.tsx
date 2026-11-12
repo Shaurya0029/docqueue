@@ -30,11 +30,11 @@ const DOCS: Record<"privacy" | "terms", Doc> = {
       },
       {
         heading: msg("ID documents"),
-        body: msg("If you add an ID document it is stored encrypted and only the last four digits are ever shown."),
+        body: msg("If you add an ID number (such as Aadhaar), only its last four digits are stored. The full number is never saved."),
       },
       {
         heading: msg("Your rights"),
-        body: msg("Under India's Digital Personal Data Protection (DPDP) Act you have the right to request a copy of your data or its deletion."),
+        body: msg("Under India's Digital Personal Data Protection (DPDP) Act you can download all your data or delete your account at any time from your Profile. Deleting erases your name, phone number, address and messages; clinics keep visit and payment records without your name, as accounting law requires."),
       },
     ],
   },
@@ -48,11 +48,15 @@ const DOCS: Record<"privacy" | "terms", Doc> = {
       },
       {
         heading: msg("Cancellations & refunds"),
-        body: msg("Cancel 2 or more hours before your slot for a full refund to your original payment method. Cancellations made later than that are not refunded."),
+        body: msg("Cancel 2 or more hours before your slot for a full refund to your original payment method. Cancellations made later than that are not refunded. If the clinic cancels, you are always refunded in full."),
+      },
+      {
+        heading: msg("Rescheduling"),
+        body: msg("You can move a booking to another free slot with the same doctor up to 2 hours before it. Your payment carries over and you get a new token and QR code."),
       },
       {
         heading: msg("Queue tokens"),
-        body: msg("Your token is issued once payment succeeds. Waiting-time estimates are based on recent consultations and may change; please check in at the front desk with your QR ticket."),
+        body: msg("Your token is issued once payment succeeds and follows your appointment time. Waiting-time estimates are based on recent consultations and may change; please check in at the front desk with your QR ticket."),
       },
       {
         heading: msg("No-shows"),

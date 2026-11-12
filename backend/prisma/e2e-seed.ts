@@ -1,4 +1,5 @@
 import bcrypt from "bcryptjs";
+import Redis from "ioredis";
 import { seed, seedPrisma as prisma } from "./seed";
 import { toDateKey } from "../src/lib/dates";
 
@@ -14,6 +15,14 @@ async function main() {
   if (!process.env.DATABASE_URL?.includes("docqueue_e2e")) {
     throw new Error("e2e-seed only runs against the docqueue_e2e database");
   }
+  // Start from an empty Redis database too: OTP rate limits and queue state
+  // from earlier runs would otherwise leak in (5 OTPs per phone per hour).
+  const redisUrl = process.env.REDIS_URL ?? "";
+  if (!/\/1$/.test(redisUrl)) throw new Error("e2e-seed expects its own Redis database (redis://.../1)");
+  const redis = new Redis(redisUrl);
+  await redis.flushdb();
+  await redis.quit();
+
   await seed();
 
   const clinic = await prisma.clinic.findFirstOrThrow({ where: { name: "Peppermint Family Clinic" } });
