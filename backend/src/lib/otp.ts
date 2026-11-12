@@ -8,13 +8,13 @@ import { HttpError } from "../middleware/errorHandler";
  * One-time passwords, kept in Redis so they survive API restarts and work
  * across several API instances. Only a keyed hash of the code is stored.
  *
- * Limits: 5 OTP requests per phone per hour, 20 per IP per hour (stops one
+ * Limits: 5 OTP requests per phone per hour, 100 per IP per hour (stops one
  * client texting many numbers), and 5 wrong guesses per code, after which the
  * code is burned and the patient must request a new one.
  */
 export const OTP_TTL_SECONDS = 5 * 60;
 export const MAX_REQUESTS_PER_PHONE_PER_HOUR = 5;
-export const MAX_REQUESTS_PER_IP_PER_HOUR = 20;
+export const MAX_REQUESTS_PER_IP_PER_HOUR = 100; // generous: many patients may share a clinic's Wi-Fi
 export const MAX_VERIFY_ATTEMPTS = 5;
 
 /** The fixed code used by the console SMS provider outside production. */

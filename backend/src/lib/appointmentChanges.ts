@@ -5,6 +5,7 @@ import { tokenForSlot, ensureClinicDay, publishQueueUpdate } from "./queueServic
 import { generateShortCode, signQrToken } from "./qr";
 import { sendNotification } from "./notifications";
 import { writeAuditLog } from "./audit";
+import { assertDoctorBookable } from "./bookable";
 import { isRefundableByPolicy, issueRefund, REFUND_CUTOFF_HOURS, type RefundResult } from "./refunds";
 
 /**
@@ -97,6 +98,7 @@ export async function rescheduleAppointment(params: {
     throw new HttpError(409, `Appointments can be rescheduled up to ${REFUND_CUTOFF_HOURS} hours before the slot`);
   }
   if (params.newSlotId === appointment.slotId) throw new HttpError(400, "That is already your slot");
+  await assertDoctorBookable(appointment.doctorId);
 
   const result = await prisma.$transaction(async (tx) => {
     const claimed = await tx.slot.updateMany({

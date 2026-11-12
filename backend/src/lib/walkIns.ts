@@ -4,6 +4,7 @@ import { formatIst, todayKey } from "./dates";
 import { tokenForSlot, ensureClinicDay, publishQueueUpdate } from "./queueService";
 import { sendNotification } from "./notifications";
 import { writeAuditLog } from "./audit";
+import { assertDoctorBookable } from "./bookable";
 
 /**
  * A patient without the app, added at the desk by an associate.
@@ -20,6 +21,7 @@ export async function addWalkIn(params: {
   feeCollected: boolean;
   actorUserId: string;
 }): Promise<{ appointmentId: string; token: number; slotStartsAt: Date; patientName: string }> {
+  await assertDoctorBookable(params.doctorId);
   const doctor = await prisma.doctor.findUniqueOrThrow({ where: { id: params.doctorId }, include: { clinic: true } });
 
   // Find or create the patient. Consent was given to the associate in person.

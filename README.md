@@ -59,7 +59,7 @@ The seed gives every doctor 15-minute slots, Monday to Friday, 10:00 to 17:00 IS
 - **`stub`** (default): messages are printed to the API log (`[sms:console] ...`) and the OTP is always `123456`. Refused when `NODE_ENV=production`.
 - **`live`**: sends through `SMS_PROVIDER`. No provider is implemented yet: add a class implementing `SmsProvider` in `backend/src/lib/sms/` and a case in `getSmsProvider()`.
 
-OTPs are stored hashed in Redis for 5 minutes. Limits: 5 requests per phone per hour, 20 per IP per hour, and 5 wrong guesses per code. Behind a load balancer, set `TRUST_PROXY=1` so the per-IP limit sees the patient's IP.
+OTPs are stored hashed in Redis for 5 minutes. Limits: 5 requests per phone per hour, 100 per IP per hour, and 5 wrong guesses per code. Behind a load balancer, set `TRUST_PROXY=1` so the per-IP limit sees the patient's IP.
 
 ## Payments
 
@@ -127,7 +127,7 @@ CI (`.github/workflows/ci.yml`) runs all three on every push and pull request.
 - **Reschedule:** to another free slot of the same doctor, up to 2 hours before; new token and QR.
 - **Notifications by SMS** (each logged, each sent once): booking confirmed, 1-hour reminder, "you are 3rd in line", cancelled, refund issued, slots opened.
 - **No slots?** "Notify me when slots open" or "Show next available doctor".
-- **Verified doctors:** the tick appears only after the clinic admin approves the doctor's medical registration.
+- **Verified doctors only:** patients see and book a doctor only after the clinic admin approves their medical registration (unverified or inactive doctors are hidden from search and cannot be booked, rescheduled into, or given walk-ins).
 - **Hindi** throughout the patient portal (Appearance & language menu), English as fallback.
 - **Your data (DPDP):** download everything held about you, or delete your account, from Profile. Deletion erases identity and keeps anonymous visit and payment records for the clinic's accounts.
 

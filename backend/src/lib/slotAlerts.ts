@@ -2,11 +2,12 @@ import { prisma } from "./prisma";
 import { HttpError } from "../middleware/errorHandler";
 import { formatIst } from "./dates";
 import { sendNotification } from "./notifications";
+import { BOOKABLE_DOCTOR } from "./bookable";
 
 /** "Notify me when slots open": saving again re-arms an alert that already fired. */
 export async function subscribeToSlots(patientId: string, doctorId: string): Promise<void> {
-  const doctor = await prisma.doctor.findUnique({ where: { id: doctorId } });
-  if (!doctor || !doctor.isActive) throw new HttpError(404, "Doctor not found");
+  const doctor = await prisma.doctor.findFirst({ where: { id: doctorId, ...BOOKABLE_DOCTOR } });
+  if (!doctor) throw new HttpError(404, "Doctor not found");
   await prisma.slotAlert.upsert({
     where: { patientId_doctorId: { patientId, doctorId } },
     create: { patientId, doctorId },
@@ -58,7 +59,7 @@ export async function nextAvailableDoctors(doctorId: string, limit = 3) {
   if (!doctor) throw new HttpError(404, "Doctor not found");
   const now = new Date();
   const candidates = await prisma.doctor.findMany({
-    where: { id: { not: doctorId }, isActive: true, slots: { some: { isBooked: false, startsAt: { gt: now } } } },
+    where: { id: { not: doctorId }, ...BOOKABLE_DOCTOR, slots: { some: { isBooked: false, startsAt: { gt: now } } } },
     include: {
       clinic: true,
       slots: { where: { isBooked: false, startsAt: { gt: now } }, orderBy: { startsAt: "asc" }, take: 1 },

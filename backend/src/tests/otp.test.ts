@@ -56,8 +56,8 @@ describe("OTP login", () => {
     expect((await requestOtp(newPhone(), "10.0.1.99")).status).toBe(200); // other numbers unaffected
   });
 
-  it("limits one IP to 20 OTP requests per hour across numbers", async () => {
-    for (let i = 0; i < 20; i++) expect((await requestOtp(newPhone(), "10.0.2.1")).status).toBe(200);
+  it("limits one IP to 100 OTP requests per hour across numbers", async () => {
+    for (let i = 0; i < 100; i++) expect((await requestOtp(newPhone(), "10.0.2.1")).status).toBe(200);
     expect((await requestOtp(newPhone(), "10.0.2.1")).status).toBe(429);
   });
 

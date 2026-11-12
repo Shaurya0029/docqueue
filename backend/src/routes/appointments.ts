@@ -7,6 +7,7 @@ import { getNowServing, getRollingAvgConsultMinutes } from "../lib/queueService"
 import { assertDoctorAccess } from "../lib/scope";
 import { cancelAppointment, rescheduleAppointment } from "../lib/appointmentChanges";
 import { issueRefund } from "../lib/refunds";
+import { assertDoctorBookable } from "../lib/bookable";
 
 export const appointmentsRouter = Router();
 
@@ -16,6 +17,10 @@ appointmentsRouter.post(
   requireRole("PATIENT"),
   asyncHandler(async (req, res) => {
     const { slotId } = bookAppointmentSchema.parse(req.body);
+
+    const target = await prisma.slot.findUnique({ where: { id: slotId }, select: { doctorId: true } });
+    if (!target) throw new HttpError(404, "Slot not found");
+    await assertDoctorBookable(target.doctorId);
 
     const appointment = await prisma.$transaction(async (tx) => {
       // Atomic claim: only one booking can win the race on a given slot.

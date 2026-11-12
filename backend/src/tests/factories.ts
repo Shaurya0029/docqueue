@@ -27,7 +27,8 @@ export async function createClinicWithAdmin() {
   return { user, clinic, token };
 }
 
-export async function createDoctor(clinicId: string, overrides: Partial<{ consultationFee: number }> = {}) {
+/** An approved, bookable doctor unless `verified: false` is passed. */
+export async function createDoctor(clinicId: string, overrides: Partial<{ consultationFee: number; verified: boolean }> = {}) {
   const phone = uniquePhone();
   const user = await prisma.user.create({
     data: {
@@ -41,6 +42,9 @@ export async function createDoctor(clinicId: string, overrides: Partial<{ consul
           specialization: "General",
           consultationFee: overrides.consultationFee ?? 500,
           avgConsultMinutes: 10,
+          ...(overrides.verified === false
+            ? {}
+            : { registrationNumber: `TEST-${phone.slice(-6)}`, registrationCouncil: "Test Medical Council", verificationStatus: "APPROVED" as const }),
         },
       },
     },

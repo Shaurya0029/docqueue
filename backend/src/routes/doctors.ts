@@ -3,6 +3,7 @@ import { prisma } from "../lib/prisma";
 import { asyncHandler, HttpError } from "../middleware/errorHandler";
 import { doctorSearchSchema } from "../schemas";
 import { cityAliases } from "../lib/cityAliases";
+import { BOOKABLE_DOCTOR } from "../lib/bookable";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { isSubscribed, nextAvailableDoctors, subscribeToSlots, unsubscribeFromSlots } from "../lib/slotAlerts";
 
@@ -14,7 +15,7 @@ doctorsRouter.get(
     const { name, specialization, city } = doctorSearchSchema.parse(req.query);
     const doctors = await prisma.doctor.findMany({
       where: {
-        isActive: true,
+        ...BOOKABLE_DOCTOR,
         fullName: name ? { contains: name, mode: "insensitive" } : undefined,
         specialization: specialization ? { contains: specialization, mode: "insensitive" } : undefined,
         clinic: city ? { OR: cityAliases(city).map((c) => ({ address: { contains: c, mode: "insensitive" as const } })) } : undefined,
@@ -84,7 +85,8 @@ doctorsRouter.get(
         slots: { where: { isBooked: false, startsAt: { gte: new Date() } }, orderBy: { startsAt: "asc" } },
       },
     });
-    if (!doctor || !doctor.isActive) throw new HttpError(404, "Doctor not found");
+    // Unverified or inactive doctors are not shown to patients at all.
+    if (!doctor || !doctor.isActive || doctor.verificationStatus !== "APPROVED") throw new HttpError(404, "Doctor not found");
     res.json({
       id: doctor.id,
       fullName: doctor.fullName,
