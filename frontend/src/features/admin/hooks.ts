@@ -2,9 +2,13 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
 import type { AdminOverviewRow, AuditLogEntry, Clinic, DoctorBasic } from "../../types/api";
 
-interface AdminDoctorRow extends DoctorBasic {
+export interface AdminDoctorRow extends DoctorBasic {
   userId: string;
   clinicId: string;
+  registrationNumber: string | null;
+  registrationCouncil: string | null;
+  verificationStatus: "PENDING" | "APPROVED" | "REJECTED";
+  rejectionReason: string | null;
 }
 
 interface AdminAssociateRow {
@@ -48,6 +52,8 @@ export function useCreateDoctor() {
       specialization: string;
       consultationFee: number;
       avgConsultMinutes: number;
+      registrationNumber?: string;
+      registrationCouncil?: string;
     }) =>
       (
         await api.post<{ doctor: DoctorBasic; loginPhone: string; tempPassword: string }>(
@@ -111,5 +117,17 @@ export function useAuditLog(filters: { action?: string }) {
   return useQuery({
     queryKey: ["admin-audit-log", filters],
     queryFn: async () => (await api.get<{ logs: AuditLogEntry[] }>("/admin/audit-log", { params: filters })).data.logs,
+  });
+}
+
+/** Approve or reject a doctor's medical registration. */
+export function useVerifyDoctor(clinicId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: { doctorId: string; decision: "APPROVE" } | { doctorId: string; decision: "REJECT"; reason: string }) => {
+      const { doctorId, ...body } = params;
+      return (await api.post(`/admin/doctors/${doctorId}/verification`, body)).data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-clinic-doctors", clinicId] }),
   });
 }

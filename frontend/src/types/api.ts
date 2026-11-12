@@ -32,6 +32,7 @@ export interface DoctorSummary {
   fullName: string;
   specialization: string;
   consultationFee: number;
+  isVerified?: boolean;
   clinic: Clinic;
   nextSlot: Slot | null;
 }
@@ -55,6 +56,19 @@ export interface DoctorProfile {
   clinic: Clinic;
   slots: Slot[];
   isActive?: boolean;
+  isVerified?: boolean;
+  registration?: { number: string | null; council: string | null } | null;
+}
+
+export type VerificationStatus = "PENDING" | "APPROVED" | "REJECTED";
+
+/** The doctor's own record (from /me), including verification details. */
+export interface MyDoctorRecord {
+  id: string;
+  registrationNumber: string | null;
+  registrationCouncil: string | null;
+  verificationStatus: VerificationStatus;
+  rejectionReason: string | null;
 }
 
 export interface Slot {

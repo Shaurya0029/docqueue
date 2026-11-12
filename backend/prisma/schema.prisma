@@ -42,6 +42,12 @@ enum RefundStatus {
   FAILED
 }
 
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
 enum ClinicDayStatus {
   OPEN
   PAUSED
@@ -147,6 +153,13 @@ model Doctor {
   avgConsultMinutes Int     @default(15)
   bio              String?
   isActive         Boolean  @default(true)
+  // Medical registration (NMC / state medical council), checked by the clinic admin.
+  registrationNumber  String?
+  registrationCouncil String?
+  verificationStatus  VerificationStatus @default(PENDING)
+  verifiedAt          DateTime?
+  verifiedByUserId    String?
+  rejectionReason     String?
   createdAt        DateTime @default(now())
 
   slots          Slot[]

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
-import type { Appointment, DoctorProfile, DoctorQueue, Slot } from "../../types/api";
+import type { Appointment, DoctorProfile, DoctorQueue, Slot, MyDoctorRecord } from "../../types/api";
 
 // The JWT's profileId (the Doctor.id) never reaches the frontend directly;
 // /me returns it as profile.id, and every doctor-scoped URL below needs it
@@ -9,7 +9,7 @@ import type { Appointment, DoctorProfile, DoctorQueue, Slot } from "../../types/
 export function useMyDoctorProfile() {
   return useQuery({
     queryKey: ["my-doctor-profile"],
-    queryFn: async () => (await api.get<{ profile: { id: string } }>("/me")).data.profile,
+    queryFn: async () => (await api.get<{ profile: MyDoctorRecord }>("/me")).data.profile,
   });
 }
 
@@ -96,9 +96,17 @@ export function useDeleteSlot(doctorId: string | null) {
 export function useUpdateDoctorSettings(doctorId: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { consultationFee?: number; avgConsultMinutes?: number; bio?: string }) =>
-      (await api.patch(`/doctors/${doctorId}`, data)).data,
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["doctor-profile-full", doctorId] }),
+    mutationFn: async (data: {
+      consultationFee?: number;
+      avgConsultMinutes?: number;
+      bio?: string;
+      registrationNumber?: string;
+      registrationCouncil?: string;
+    }) => (await api.patch(`/doctors/${doctorId}`, data)).data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["doctor-profile-full", doctorId] });
+      queryClient.invalidateQueries({ queryKey: ["my-doctor-profile"] });
+    },
   });
 }
 

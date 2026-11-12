@@ -83,7 +83,16 @@ export const slotUpdateSchema = z.object({
   endsAt: z.string().datetime().optional(),
 });
 
+/** NMC / state council registration numbers: letters, digits, / - . and spaces. */
+const registrationNumberSchema = z
+  .string()
+  .trim()
+  .regex(/^[A-Za-z0-9][A-Za-z0-9/.\- ]{2,29}$/, "Enter the registration number as it appears on the certificate");
+const registrationCouncilSchema = z.string().trim().min(2).max(100);
+
 export const doctorUpdateSchema = z.object({
+  registrationNumber: registrationNumberSchema.optional(),
+  registrationCouncil: registrationCouncilSchema.optional(),
   consultationFee: z.number().int().positive().optional(),
   avgConsultMinutes: z.number().int().positive().optional(),
   bio: z.string().optional(),
@@ -106,7 +115,14 @@ export const createDoctorSchema = z.object({
   specialization: z.string().min(1),
   consultationFee: z.number().int().positive(),
   avgConsultMinutes: z.number().int().positive().default(15),
+  registrationNumber: registrationNumberSchema.optional(),
+  registrationCouncil: registrationCouncilSchema.optional(),
 });
+
+export const verifyDoctorSchema = z.discriminatedUnion("decision", [
+  z.object({ decision: z.literal("APPROVE") }),
+  z.object({ decision: z.literal("REJECT"), reason: z.string().trim().min(3).max(300) }),
+]);
 
 export const createAssociateSchema = z.object({
   phoneNumber: phoneSchema,

@@ -66,9 +66,14 @@ export function DoctorProfilePage() {
             </div>
             <h1 className="mt-3 flex items-center gap-1.5 text-2xl font-extrabold">
               {doctor.fullName}
-              <Icon name="verified" className="h-5 w-5 text-brand-500" />
+              {doctor.isVerified && <Icon name="verified" className="h-5 w-5 text-brand-500" aria-label={t("Verified")} />}
             </h1>
             <p className="font-semibold text-brand-600">{doctor.specialization}</p>
+            {doctor.registration?.number && (
+              <p className="text-xs text-muted">
+                {t("Reg. no. {number}, {council}", { number: doctor.registration.number, council: doctor.registration.council ?? "" })}
+              </p>
+            )}
             <p className="mt-1 flex items-start gap-1 text-sm text-muted">
               <Icon name="pin" className="mt-0.5 h-4 w-4 shrink-0" />
               <span>

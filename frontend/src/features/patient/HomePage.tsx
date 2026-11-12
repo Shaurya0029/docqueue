@@ -160,7 +160,7 @@ export function HomePage() {
                     <div className="min-w-0">
                       <p className="flex items-center gap-1 truncate font-bold text-ink">
                         {doctor.fullName}
-                        <Icon name="verified" className="h-4 w-4 shrink-0 text-brand-500" />
+                        {doctor.isVerified && <Icon name="verified" className="h-4 w-4 shrink-0 text-brand-500" aria-label={t("Verified")} />}
                       </p>
                       <p className="text-sm font-semibold text-brand-600">{doctor.specialization}</p>
                     </div>

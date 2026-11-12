@@ -25,6 +25,7 @@ const DOCTORS = [
     consultationFee: 500,
     avgConsultMinutes: 12,
     bio: "15 years of general practice.",
+    registrationNumber: "KMC-58231",
   },
   {
     phone: "+919800000005",
@@ -33,6 +34,7 @@ const DOCTORS = [
     consultationFee: 700,
     avgConsultMinutes: 15,
     bio: "Child health and vaccinations, 10 years in practice.",
+    registrationNumber: "KMC-71402",
   },
   {
     phone: "+919800000006",
@@ -41,6 +43,7 @@ const DOCTORS = [
     consultationFee: 800,
     avgConsultMinutes: 10,
     bio: "Skin, hair and nail care, 8 years in practice.",
+    registrationNumber: "KMC-80917",
   },
 ];
 
@@ -136,6 +139,17 @@ export async function seed(): Promise<void> {
       include: { doctor: true },
     });
     doctorIds.push(user.doctor!.id);
+    // Demo doctors are shown as verified (sample registration numbers, not real ones).
+    await prisma.doctor.updateMany({
+      where: { id: user.doctor!.id, registrationNumber: null },
+      data: {
+        registrationNumber: d.registrationNumber,
+        registrationCouncil: "Karnataka Medical Council",
+        verificationStatus: "APPROVED",
+        verifiedAt: new Date(),
+        verifiedByUserId: adminUser.id,
+      },
+    });
   }
 
   const associateUser = await prisma.user.upsert({

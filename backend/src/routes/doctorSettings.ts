@@ -7,6 +7,7 @@ import { toDateKey } from "../lib/dates";
 import { generateSlots } from "../lib/slots";
 import { assertDayNotRenumbered } from "../lib/queueService";
 import { notifySlotAlerts } from "../lib/slotAlerts";
+import { writeAuditLog } from "../lib/audit";
 import {
   slotCreateSchema,
   slotBulkCreateSchema,
@@ -120,7 +121,27 @@ doctorSettingsRouter.patch(
     const doctorId = req.params.id;
     await assertDoctorAccess(req.auth!, doctorId);
     const data = doctorUpdateSchema.parse(req.body);
-    const doctor = await prisma.doctor.update({ where: { id: doctorId }, data });
+    const current = await prisma.doctor.findUniqueOrThrow({ where: { id: doctorId } });
+    const registrationChanged =
+      (data.registrationNumber !== undefined && data.registrationNumber !== current.registrationNumber) ||
+      (data.registrationCouncil !== undefined && data.registrationCouncil !== current.registrationCouncil);
+    const doctor = await prisma.doctor.update({
+      where: { id: doctorId },
+      data: {
+        ...data,
+        // New registration details must be checked again before the tick returns.
+        ...(registrationChanged ? { verificationStatus: "PENDING" as const, verifiedAt: null, verifiedByUserId: null, rejectionReason: null } : {}),
+      },
+    });
+    if (registrationChanged) {
+      await writeAuditLog({
+        actorUserId: req.auth!.userId,
+        action: "DOCTOR_REGISTRATION_UPDATED",
+        targetType: "Doctor",
+        targetId: doctorId,
+        metadata: { registrationNumber: doctor.registrationNumber, registrationCouncil: doctor.registrationCouncil },
+      });
+    }
     res.json({ doctor });
   })
 );

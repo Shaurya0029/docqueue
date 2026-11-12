@@ -70,7 +70,7 @@ export async function nextAvailableDoctors(doctorId: string, limit = 3) {
       fullName: d.fullName,
       specialization: d.specialization,
       consultationFee: d.consultationFee,
-      isVerified: (d as { verificationStatus?: string }).verificationStatus === "APPROVED",
+      isVerified: d.verificationStatus === "APPROVED",
       clinic: { id: d.clinic.id, name: d.clinic.name, address: d.clinic.address },
       nextSlot: d.slots[0],
       sameSpecialization: d.specialization.toLowerCase() === doctor.specialization.toLowerCase(),

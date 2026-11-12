@@ -30,6 +30,7 @@ doctorsRouter.get(
         fullName: d.fullName,
         specialization: d.specialization,
         consultationFee: d.consultationFee,
+        isVerified: d.verificationStatus === "APPROVED",
         clinic: { id: d.clinic.id, name: d.clinic.name, address: d.clinic.address },
         nextSlot: d.slots[0] ?? null,
       })),
@@ -91,6 +92,12 @@ doctorsRouter.get(
       consultationFee: doctor.consultationFee,
       avgConsultMinutes: doctor.avgConsultMinutes,
       bio: doctor.bio,
+      isVerified: doctor.verificationStatus === "APPROVED",
+      // A verified doctor's registration is public, as on the NMC register.
+      registration:
+        doctor.verificationStatus === "APPROVED"
+          ? { number: doctor.registrationNumber, council: doctor.registrationCouncil }
+          : null,
       clinic: { id: doctor.clinic.id, name: doctor.clinic.name, address: doctor.clinic.address },
       slots: doctor.slots,
     });

@@ -2,8 +2,77 @@ import { useEffect, useState } from "react";
 import { Alert, Avatar, Button, Card, EmptyState, Field, Input, ClinicPicker, ListHeader, PageHeader, PhoneInput, Section, isValidIndianMobile, stagger, toE164India } from "../../components/ui";
 import { apiErrorMessage } from "../../lib/api";
 import { formatRupees } from "../../lib/formatters";
-import { useClinics, useCreateDoctor, useDeactivateUser, useDoctorsForClinic } from "./hooks";
+import { useClinics, useCreateDoctor, useDeactivateUser, useDoctorsForClinic, useVerifyDoctor, type AdminDoctorRow } from "./hooks";
 import { useT } from "../../lib/i18n";
+
+const VERIFICATION_STYLE = {
+  APPROVED: "bg-success-soft text-success",
+  PENDING: "bg-amber-50 text-amber-700",
+  REJECTED: "bg-danger-soft text-danger",
+} as const;
+
+/** Registration details plus approve / reject, for one doctor card. */
+function VerificationPanel({ doctor, clinicId }: { doctor: AdminDoctorRow; clinicId: string }) {
+  const t = useT();
+  const verify = useVerifyDoctor(clinicId || undefined);
+  const [rejecting, setRejecting] = useState(false);
+  const [reason, setReason] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const label = { APPROVED: t("Verified"), PENDING: t("Pending verification"), REJECTED: t("Rejected") }[doctor.verificationStatus];
+
+  async function decide(params: { decision: "APPROVE" } | { decision: "REJECT"; reason: string }) {
+    setError(null);
+    try {
+      await verify.mutateAsync({ doctorId: doctor.id, ...params });
+      setRejecting(false);
+      setReason("");
+    } catch (err) {
+      setError(apiErrorMessage(err));
+    }
+  }
+
+  return (
+    <div className="w-full space-y-2 rounded-2xl bg-slate-50 p-3 text-sm">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <span className="text-muted">
+          {doctor.registrationNumber
+            ? t("Reg. no. {number}, {council}", { number: doctor.registrationNumber, council: doctor.registrationCouncil ?? "–" })
+            : t("No registration number yet")}
+        </span>
+        <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${VERIFICATION_STYLE[doctor.verificationStatus]}`}>{label}</span>
+      </div>
+      {doctor.verificationStatus === "REJECTED" && doctor.rejectionReason && (
+        <p className="text-xs text-danger">{t("Reason: {reason}", { reason: doctor.rejectionReason })}</p>
+      )}
+      {doctor.verificationStatus !== "APPROVED" && doctor.registrationNumber && !rejecting && (
+        <div className="flex gap-2">
+          <Button size="sm" icon="check" className="flex-1" loading={verify.isPending} onClick={() => void decide({ decision: "APPROVE" })}>
+            {t("Approve")}
+          </Button>
+          {doctor.verificationStatus === "PENDING" && (
+            <Button size="sm" variant="secondary" className="flex-1" onClick={() => setRejecting(true)}>
+              {t("Reject")}
+            </Button>
+          )}
+        </div>
+      )}
+      {rejecting && (
+        <div className="space-y-2">
+          <Input placeholder={t("Why? e.g. not found on the NMC register")} value={reason} onChange={(e) => setReason(e.target.value)} aria-label={t("Reason for rejecting")} />
+          <div className="flex gap-2">
+            <Button size="sm" variant="secondary" className="flex-1" onClick={() => setRejecting(false)}>
+              {t("Back")}
+            </Button>
+            <Button size="sm" variant="danger" className="flex-1" disabled={reason.trim().length < 3} loading={verify.isPending} onClick={() => void decide({ decision: "REJECT", reason: reason.trim() })}>
+              {t("Reject")}
+            </Button>
+          </div>
+        </div>
+      )}
+      <Alert>{error}</Alert>
+    </div>
+  );
+}
 
 export function DoctorsPage() {
   const t = useT();
@@ -18,6 +87,8 @@ export function DoctorsPage() {
   const [specialization, setSpecialization] = useState("");
   const [fee, setFee] = useState(500);
   const [avgMinutes, setAvgMinutes] = useState(15);
+  const [regNumber, setRegNumber] = useState("");
+  const [regCouncil, setRegCouncil] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitted, setSubmitted] = useState(false);
   const [credentials, setCredentials] = useState<{ phone: string; password: string } | null>(null);
@@ -37,11 +108,15 @@ export function DoctorsPage() {
         specialization,
         consultationFee: fee,
         avgConsultMinutes: avgMinutes,
+        ...(regNumber.trim() ? { registrationNumber: regNumber.trim() } : {}),
+        ...(regCouncil.trim() ? { registrationCouncil: regCouncil.trim() } : {}),
       });
       setCredentials({ phone: res.loginPhone, password: res.tempPassword });
       setPhoneNumber("");
       setFullName("");
       setSpecialization("");
+      setRegNumber("");
+      setRegCouncil("");
     } catch (err) {
       setError(apiErrorMessage(err));
     }
@@ -90,6 +165,12 @@ export function DoctorsPage() {
                 <Input type="number" min={1} value={avgMinutes} onChange={(e) => setAvgMinutes(Number(e.target.value))} />
               </Field>
             </div>
+            <Field label={t("Registration number")} hint={t("Optional now; needed before you can verify the doctor.")}>
+              <Input placeholder="KMC-12345" value={regNumber} onChange={(e) => setRegNumber(e.target.value)} />
+            </Field>
+            <Field label={t("Medical council")}>
+              <Input placeholder={t("e.g. Karnataka Medical Council")} value={regCouncil} onChange={(e) => setRegCouncil(e.target.value)} />
+            </Field>
             <Alert>{error}</Alert>
             <Alert tone="success">
               {credentials && (
@@ -119,6 +200,7 @@ export function DoctorsPage() {
                   {doctor.specialization} · {formatRupees(doctor.consultationFee)}
                 </p>
               </div>
+              <VerificationPanel doctor={doctor} clinicId={clinicId} />
               <div className="flex items-center gap-2 max-sm:w-full max-sm:justify-end">
               <span
                 className={`rounded-full px-2.5 py-1 text-xs font-bold ${doctor.isActive ? "bg-success-soft text-success" : "bg-slate-100 text-slate-500"}`}

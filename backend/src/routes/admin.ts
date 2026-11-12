@@ -11,6 +11,7 @@ import {
   createDoctorSchema,
   createAssociateSchema,
   auditLogQuerySchema,
+ verifyDoctorSchema,
 } from "../schemas";
 import { writeAuditLog } from "../lib/audit";
 
@@ -79,6 +80,45 @@ function tempPassword(): string {
   return crypto.randomBytes(6).toString("hex");
 }
 
+/**
+ * The clinic admin checks the doctor's registration (for example on the NMC
+ * register) and approves or rejects it. Only approved doctors show the
+ * verified tick to patients.
+ */
+adminRouter.post(
+  "/admin/doctors/:id/verification",
+  requireAuth,
+  requireRole("ADMIN"),
+  asyncHandler(async (req, res) => {
+    const body = verifyDoctorSchema.parse(req.body);
+    const doctor = await prisma.doctor.findUnique({ where: { id: req.params.id } });
+    if (!doctor) throw new HttpError(404, "Doctor not found");
+    await assertClinicAccess(req.auth!, doctor.clinicId);
+    if (body.decision === "APPROVE" && (!doctor.registrationNumber || !doctor.registrationCouncil)) {
+      throw new HttpError(409, "Add the registration number and council before approving");
+    }
+    const updated = await prisma.doctor.update({
+      where: { id: doctor.id },
+      data:
+        body.decision === "APPROVE"
+          ? { verificationStatus: "APPROVED", verifiedAt: new Date(), verifiedByUserId: req.auth!.userId, rejectionReason: null }
+          : { verificationStatus: "REJECTED", verifiedAt: null, verifiedByUserId: req.auth!.userId, rejectionReason: body.reason },
+    });
+    await writeAuditLog({
+      actorUserId: req.auth!.userId,
+      action: body.decision === "APPROVE" ? "DOCTOR_VERIFIED" : "DOCTOR_VERIFICATION_REJECTED",
+      targetType: "Doctor",
+      targetId: doctor.id,
+      metadata: {
+        registrationNumber: doctor.registrationNumber,
+        registrationCouncil: doctor.registrationCouncil,
+        ...(body.decision === "REJECT" ? { reason: body.reason } : {}),
+      },
+    });
+    res.json({ doctor: updated });
+  })
+);
+
 adminRouter.post(
   "/clinics/:id/doctors",
   requireAuth,
@@ -104,6 +144,8 @@ adminRouter.post(
             specialization: data.specialization,
             consultationFee: data.consultationFee,
             avgConsultMinutes: data.avgConsultMinutes,
+            registrationNumber: data.registrationNumber,
+            registrationCouncil: data.registrationCouncil,
           },
         },
       },
