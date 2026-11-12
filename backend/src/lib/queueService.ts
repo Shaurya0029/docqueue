@@ -72,4 +72,6 @@ export async function publishQueueUpdate(doctorId: string, extra: Record<string,
   // Imported lazily: notifications.ts imports this module too.
   const { notifyThirdInLine } = await import("./notifications");
   await notifyThirdInLine(doctorId).catch((err) => console.error("third-in-line notification failed", err));
+  const { evaluateLeaveAlerts } = await import("./leaveNow");
+  await evaluateLeaveAlerts({ doctorId }).catch((err) => console.error("leave-now check failed", err));
 }

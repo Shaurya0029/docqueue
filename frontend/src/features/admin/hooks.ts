@@ -28,7 +28,8 @@ export function useClinics() {
 export function useCreateClinic() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (data: { name: string; address?: string }) => (await api.post("/clinics", data)).data,
+    mutationFn: async (data: { name: string; address?: string; latitude?: number | null; longitude?: number | null }) =>
+      (await api.post("/clinics", data)).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-clinics"] }),
   });
 }
@@ -36,8 +37,10 @@ export function useCreateClinic() {
 export function useUpdateClinic() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (params: { id: string; name?: string; address?: string }) =>
-      (await api.patch(`/clinics/${params.id}`, { name: params.name, address: params.address })).data,
+    mutationFn: async (params: { id: string; name?: string; address?: string; latitude?: number | null; longitude?: number | null }) => {
+      const { id, ...body } = params;
+      return (await api.patch(`/clinics/${id}`, body)).data;
+    },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-clinics"] }),
   });
 }

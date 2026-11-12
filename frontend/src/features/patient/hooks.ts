@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
-import type { Appointment, DoctorProfile, DoctorSummary, QueueStatus, Slot } from "../../types/api";
+import type { Appointment, DoctorProfile, DoctorSummary, LeaveAlertState, QueueStatus, Slot } from "../../types/api";
 
 export function useDoctorSearch(params: { name?: string; specialization?: string; city?: string }) {
   return useQuery({
@@ -95,8 +95,8 @@ export function useAppointment(appointmentId: string | undefined) {
   return useQuery({
     queryKey: ["appointment", appointmentId],
     queryFn: async () => {
-      const res = await api.get<{ appointment: Appointment }>(`/appointments/${appointmentId}`);
-      return res.data.appointment;
+      const res = await api.get<{ appointment: Appointment; leaveAlert: LeaveAlertState }>(`/appointments/${appointmentId}`);
+      return { ...res.data.appointment, leaveAlert: res.data.leaveAlert };
     },
     enabled: !!appointmentId,
   });
@@ -160,5 +160,23 @@ export function useSetSlotAlert(doctorId: string | undefined) {
     mutationFn: async (subscribe: boolean) =>
       (await (subscribe ? api.put : api.delete)<{ subscribed: boolean }>(`/doctors/${doctorId}/slot-alert`)).data.subscribed,
     onSuccess: (subscribed) => queryClient.setQueryData(["slot-alert", doctorId], subscribed),
+  });
+}
+
+/** Turn on or adjust "Leave now" alerts: a one-time location, or minutes the patient typed. */
+export function useSetLeaveAlert(appointmentId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { latitude: number; longitude: number } | { travelMinutes: number }) =>
+      (await api.put<{ leaveAlert: LeaveAlertState }>(`/appointments/${appointmentId}/leave-alert`, body)).data.leaveAlert,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["appointment", appointmentId] }),
+  });
+}
+
+export function useDisableLeaveAlert(appointmentId: string | undefined) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async () => (await api.delete<{ leaveAlert: LeaveAlertState }>(`/appointments/${appointmentId}/leave-alert`)).data.leaveAlert,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["appointment", appointmentId] }),
   });
 }

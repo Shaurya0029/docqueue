@@ -35,6 +35,9 @@ export const env = {
   jwtSecret: required("JWT_SECRET"),
   jwtRefreshSecret: required("JWT_REFRESH_SECRET"),
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
+  // "Leave now" travel time: straight-line (default, no key) or osrm.
+  travelProvider: (process.env.TRAVEL_PROVIDER === "osrm" ? "osrm" : "straight-line") as "osrm" | "straight-line",
+  osrmUrl: process.env.OSRM_URL ?? "https://router.project-osrm.org",
   // Number of reverse proxies in front of the API (0 = none). Needed so
   // per-IP rate limits see the client's IP, not the load balancer's.
   trustProxy: Number(process.env.TRUST_PROXY ?? 0),

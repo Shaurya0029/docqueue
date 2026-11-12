@@ -112,7 +112,7 @@ export async function rescheduleAppointment(params: {
     const token = await tokenForSlot(tx, slot);
     await tx.appointment.update({
       where: { id: appointment.id },
-      data: { slotId: slot.id, queueToken: token, queueDate: slot.slotDate },
+      data: { slotId: slot.id, queueToken: token, queueDate: slot.slotDate, leaveAlertSentAt: null },
     });
     const expiresAtMs = slot.endsAt.getTime() + 30 * 60 * 1000;
     await tx.qrToken.update({

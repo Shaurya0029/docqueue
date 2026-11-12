@@ -7,6 +7,7 @@ import { apiErrorMessage } from "../../lib/api";
 import { formatDate, formatRupees, formatTime } from "../../lib/formatters";
 import { useQueueSocket } from "../../lib/useQueueSocket";
 import { useAppointment, useCancelAppointment, useQueueStatus } from "./hooks";
+import { LeaveNowCard } from "./LeaveNowCard";
 import { useT } from "../../lib/i18n";
 
 export function TicketPage() {
@@ -201,6 +202,8 @@ export function TicketPage() {
               )}
             </Card>
           )}
+
+          {isActive && appointment.leaveAlert && <LeaveNowCard appointmentId={appointment.id} state={appointment.leaveAlert} />}
 
           {isActive && (
             <div className="space-y-2">

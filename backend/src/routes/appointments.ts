@@ -2,7 +2,8 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { asyncHandler, HttpError } from "../middleware/errorHandler";
 import { requireAuth, requireRole } from "../middleware/auth";
-import { bookAppointmentSchema, cancelAppointmentSchema, rescheduleSchema } from "../schemas";
+import { bookAppointmentSchema, cancelAppointmentSchema, leaveAlertSchema, rescheduleSchema } from "../schemas";
+import { disableLeaveAlert, enableLeaveAlert, leaveAlertState } from "../lib/leaveNow";
 import { estimateWait } from "../lib/waitTime";
 import { assertDoctorAccess } from "../lib/scope";
 import { cancelAppointment, rescheduleAppointment } from "../lib/appointmentChanges";
@@ -71,7 +72,7 @@ appointmentsRouter.get(
     if (!appointment || appointment.patientId !== req.auth!.profileId) {
       throw new HttpError(404, "Appointment not found");
     }
-    res.json({ appointment });
+    res.json({ appointment, leaveAlert: leaveAlertState(appointment) });
   })
 );
 
@@ -143,6 +144,31 @@ appointmentsRouter.post(
       newSlotId: slotId,
     });
     res.json({ ok: true, ...result });
+  })
+);
+
+/** "Leave now" alert: turn on (from a one-time location or typed minutes), adjust, or turn off. */
+appointmentsRouter.put(
+  "/:id/leave-alert",
+  requireAuth,
+  requireRole("PATIENT"),
+  asyncHandler(async (req, res) => {
+    const body = leaveAlertSchema.parse(req.body);
+    const state = await enableLeaveAlert({
+      appointmentId: req.params.id,
+      patientProfileId: req.auth!.profileId,
+      ...("travelMinutes" in body ? { manualMinutes: body.travelMinutes } : { from: body }),
+    });
+    res.json({ leaveAlert: state });
+  })
+);
+
+appointmentsRouter.delete(
+  "/:id/leave-alert",
+  requireAuth,
+  requireRole("PATIENT"),
+  asyncHandler(async (req, res) => {
+    res.json({ leaveAlert: await disableLeaveAlert(req.params.id, req.auth!.profileId) });
   })
 );
 

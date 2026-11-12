@@ -49,6 +49,12 @@ export const walkInSchema = z.object({
   consent: z.literal(true, { errorMap: () => ({ message: "The patient's consent is required" }) }),
 });
 
+export const leaveAlertSchema = z.union([
+  // Read once in the browser, used to compute travel minutes, never stored.
+  z.object({ latitude: z.number().min(-90).max(90), longitude: z.number().min(-180).max(180) }).strict(),
+  z.object({ travelMinutes: z.number().int().min(1).max(300) }).strict(),
+]);
+
 export const rescheduleSchema = z.object({
   slotId: z.string().uuid(),
 });
@@ -99,15 +105,22 @@ export const doctorUpdateSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-export const clinicCreateSchema = z.object({
-  name: z.string().min(1),
-  address: z.string().optional(),
-});
+/** Clinic location for "Leave now": both coordinates or neither (null clears them). */
+const clinicLocation = {
+  latitude: z.number().min(-90).max(90).nullable().optional(),
+  longitude: z.number().min(-180).max(180).nullable().optional(),
+};
+const bothOrNeither = (v: { latitude?: number | null; longitude?: number | null }) =>
+  (v.latitude == null) === (v.longitude == null);
+const bothOrNeitherMessage = { message: "Enter both latitude and longitude, or neither", path: ["latitude"] };
 
-export const clinicUpdateSchema = z.object({
-  name: z.string().min(1).optional(),
-  address: z.string().optional(),
-});
+export const clinicCreateSchema = z
+  .object({ name: z.string().min(1), address: z.string().optional(), ...clinicLocation })
+  .refine(bothOrNeither, bothOrNeitherMessage);
+
+export const clinicUpdateSchema = z
+  .object({ name: z.string().min(1).optional(), address: z.string().optional(), ...clinicLocation })
+  .refine(bothOrNeither, bothOrNeitherMessage);
 
 export const createDoctorSchema = z.object({
   phoneNumber: phoneSchema,

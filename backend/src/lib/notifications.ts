@@ -104,8 +104,12 @@ export async function notifyThirdInLine(doctorId: string): Promise<void> {
   });
 }
 
+/** Every minute: 1-hour reminders, and "Leave now" texts (time passes even when the queue does not move). */
 export function startReminderJob(intervalMs = 60_000): NodeJS.Timeout {
   return setInterval(() => {
     sendDueReminders().catch((err) => console.error("reminder job failed", err));
+    import("./leaveNow")
+      .then(({ evaluateLeaveAlerts }) => evaluateLeaveAlerts())
+      .catch((err) => console.error("leave-now job failed", err));
   }, intervalMs);
 }

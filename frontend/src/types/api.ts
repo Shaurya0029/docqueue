@@ -25,6 +25,8 @@ export interface Clinic {
   id: string;
   name: string;
   address: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface DoctorSummary {
@@ -103,6 +105,16 @@ export interface Appointment {
   qrToken?: { token: string; shortCode: string | null; expiresAt: string; usedAt: string | null } | null;
   cancelReason?: string | null;
   patient?: { fullName: string | null };
+  leaveAlert?: LeaveAlertState;
+}
+
+export interface LeaveAlertState {
+  /** The clinic has a location, so the feature is offered. */
+  available: boolean;
+  enabled: boolean;
+  travelMinutes: number | null;
+  source: "estimate" | "manual" | null;
+  sentAt: string | null;
 }
 
 export interface QueueStatus {

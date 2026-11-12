@@ -25,6 +25,10 @@ const DOCS: Record<"privacy" | "terms", Doc> = {
         body: msg("If you choose “Use my current location”, your device's coordinates are sent once to a location lookup service to find your city. Only the city name is kept, on your device."),
       },
       {
+        heading: msg("Leave-now alerts"),
+        body: msg("Only if you turn them on for a booking. Your device's location is read once and sent to us to estimate your travel time to the clinic (if the clinic uses a route-planning service, it is also passed to that service once for the same purpose); we keep only the number of minutes, never the location itself, and it is not written to any log. You can type or correct the minutes yourself, turn the alert off at any time, and the minutes are included in your data download and erased if you delete your account."),
+      },
+      {
         heading: msg("Who can see it"),
         body: msg("Only the clinic staff (doctors, front-desk associates and clinic admins) of the clinic you book with. Every staff action on patient data is recorded in an audit log."),
       },

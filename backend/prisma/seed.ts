@@ -117,9 +117,13 @@ export async function seed(): Promise<void> {
   });
 
   let clinic = await prisma.clinic.findFirst({ where: { adminId: adminUser.admin!.id } });
+  // MG Road, Bengaluru, so the demo clinic offers "Leave now" alerts.
+  if (clinic && clinic.latitude == null) {
+    clinic = await prisma.clinic.update({ where: { id: clinic.id }, data: { latitude: 12.9756, longitude: 77.6050 } });
+  }
   if (!clinic) {
     clinic = await prisma.clinic.create({
-      data: { name: "Peppermint Family Clinic", address: "MG Road, Bengaluru", adminId: adminUser.admin!.id },
+      data: { name: "Peppermint Family Clinic", address: "MG Road, Bengaluru", latitude: 12.9756, longitude: 77.605, adminId: adminUser.admin!.id },
     });
   }
 

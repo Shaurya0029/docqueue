@@ -59,6 +59,10 @@ export async function exportPatientData(patientId: string, actorUserId: string) 
       cancelledAt: a.cancelledAt,
       cancelReason: a.cancelReason,
       payment: a.payment,
+      // Only the travel time is kept for "Leave now", never a location.
+      leaveNowAlert: a.leaveAlertOptedInAt
+        ? { optedInAt: a.leaveAlertOptedInAt, travelMinutes: a.leaveAlertTravelMinutes, source: a.leaveAlertSource, sentAt: a.leaveAlertSentAt }
+        : null,
     })),
     messagesSent: notifications,
     slotAlerts: patient.slotAlerts.map((s) => ({ doctor: s.doctor.fullName, requestedAt: s.createdAt, notifiedAt: s.notifiedAt })),
@@ -92,6 +96,10 @@ export async function deletePatientAccount(patientId: string, actorUserId: strin
   await prisma.$transaction([
     prisma.notification.deleteMany({ where: { userId: patient.userId } }),
     prisma.slotAlert.deleteMany({ where: { patientId } }),
+    prisma.appointment.updateMany({
+      where: { patientId },
+      data: { leaveAlertOptedInAt: null, leaveAlertTravelMinutes: null, leaveAlertSource: null, leaveAlertSentAt: null },
+    }),
     prisma.patient.update({
       where: { id: patientId },
       data: { fullName: null, address: null, idDocumentRef: null, consentAt: null, consentSource: null, deletedAt: new Date() },
