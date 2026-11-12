@@ -4,6 +4,7 @@ import { env } from "./lib/env";
 import { attachWebSocketServer } from "./ws";
 import { startSlotHoldExpiryJob } from "./jobs/releaseExpiredHolds";
 import { startReminderJob } from "./lib/notifications";
+import { startCloseDaysJob } from "./jobs/closePastDays";
 
 const app = createApp();
 const httpServer = http.createServer(app);
@@ -11,6 +12,7 @@ const httpServer = http.createServer(app);
 attachWebSocketServer(httpServer);
 startSlotHoldExpiryJob();
 startReminderJob();
+startCloseDaysJob();
 
 httpServer.listen(env.port, () => {
   // eslint-disable-next-line no-console

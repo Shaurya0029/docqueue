@@ -56,7 +56,8 @@ export async function getNowServing(doctorId: string, date: string): Promise<num
 }
 
 export async function setNowServing(doctorId: string, date: string, value: number): Promise<void> {
-  await redis.set(nowServingKey(doctorId, date), value);
+  // Expires after two days: the key is only read for its own day.
+  await redis.set(nowServingKey(doctorId, date), value, "EX", 2 * 24 * 3600);
   await prisma.clinicDay.upsert({
     where: { doctorId_date: { doctorId, date } },
     create: { doctorId, date, status: "OPEN", nowServing: value },
