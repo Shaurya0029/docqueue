@@ -158,6 +158,16 @@ export function TicketPage() {
                 <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
                   <div className="h-full rounded-full bg-brand-gradient transition-all duration-700" style={{ width: `${progress}%` }} />
                 </div>
+                {queueStatus?.averageConsultMinutes != null && (
+                  <p className="mt-3 text-xs text-slate-500" data-testid="estimate-basis">
+                    {queueStatus.estimateBasis === "history"
+                      ? t("About {min} min per patient, from the doctor's last {n} consultations.", {
+                          min: Math.round(queueStatus.averageConsultMinutes),
+                          n: queueStatus.estimateSampleSize ?? 0,
+                        })
+                      : t("About {min} min per patient, the doctor's usual consultation time.", { min: Math.round(queueStatus.averageConsultMinutes) })}
+                  </p>
+                )}
               </>
             )}
           </Card>

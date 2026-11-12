@@ -8,6 +8,7 @@ import { generateSlots } from "../lib/slots";
 import { assertDayNotRenumbered } from "../lib/queueService";
 import { notifySlotAlerts } from "../lib/slotAlerts";
 import { writeAuditLog } from "../lib/audit";
+import { averageConsultMinutes } from "../lib/waitTime";
 import {
   slotCreateSchema,
   slotBulkCreateSchema,
@@ -140,6 +141,17 @@ doctorSettingsRouter.patch(
       });
     }
     res.json({ doctor });
+  })
+);
+
+/** The average the wait estimate uses for this doctor, and what it is based on. */
+doctorSettingsRouter.get(
+  "/doctors/:id/consult-average",
+  requireAuth,
+  requireRole("DOCTOR", "ADMIN"),
+  asyncHandler(async (req, res) => {
+    const doctorId = await resolveDoctorScope(req.auth!, req.params.id);
+    res.json(await averageConsultMinutes(doctorId));
   })
 );
 

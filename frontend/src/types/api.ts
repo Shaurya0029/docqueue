@@ -112,6 +112,10 @@ export interface QueueStatus {
   /** Real patients still waiting before this one (tokens can have gaps). */
   patientsAhead: number | null;
   estimatedWaitMinutes: number | null;
+  /** The per-patient minutes used: the doctor's recent real average, or their configured one. */
+  averageConsultMinutes?: number | null;
+  estimateBasis?: "history" | "configured" | null;
+  estimateSampleSize?: number | null;
 }
 
 export interface QueueEntry {

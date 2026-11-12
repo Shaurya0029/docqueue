@@ -131,6 +131,14 @@ CI (`.github/workflows/ci.yml`) runs all three on every push and pull request.
 - **Hindi** throughout the patient portal (Appearance & language menu), English as fallback.
 - **Your data (DPDP):** download everything held about you, or delete your account, from Profile. Deletion erases identity and keeps anonymous visit and payment records for the clinic's accounts.
 
+## Wait-time estimate
+
+A patient's estimated wait = patients still waiting ahead of them × the doctor's average consultation time (`backend/src/lib/waitTime.ts`).
+
+- The average is the mean of the doctor's **last 20 real consultations**: called and then completed, lasting 1 to 120 minutes. Shorter is a mis-tap; longer is a consultation nobody closed until much later.
+- With **fewer than 5** real consultations it falls back to the doctor's configured average (Settings).
+- The ticket says which basis it used; the doctor's Settings page shows their measured average.
+
 ## Privacy and access rules
 
 - Every doctor-scoped query uses the doctor allowed by the login token, never a URL parameter. Tests try every staff route as the wrong doctor, an unassigned associate, another clinic's admin and a patient.

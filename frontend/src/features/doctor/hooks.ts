@@ -110,6 +110,15 @@ export function useUpdateDoctorSettings(doctorId: string | null) {
   });
 }
 
+export function useConsultAverage(doctorId: string | null) {
+  return useQuery({
+    queryKey: ["consult-average", doctorId],
+    queryFn: async () =>
+      (await api.get<{ minutes: number; basis: "history" | "configured"; sampleSize: number }>(`/doctors/${doctorId}/consult-average`)).data,
+    enabled: !!doctorId,
+  });
+}
+
 export function useDoctorProfileFull(doctorId: string | null) {
   return useQuery({
     queryKey: ["doctor-profile-full", doctorId],

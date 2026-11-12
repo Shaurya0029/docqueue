@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Button, ErrorState, Field, Input, PageHeader, Section, Spinner, Textarea } from "../../components/ui";
 import { apiErrorMessage } from "../../lib/api";
-import { useDoctorProfileFull, useMyDoctorProfile, useUpdateDoctorSettings } from "./hooks";
+import { useConsultAverage, useDoctorProfileFull, useMyDoctorProfile, useUpdateDoctorSettings } from "./hooks";
 import { useT } from "../../lib/i18n";
 
 export function SettingsPage() {
@@ -10,6 +10,7 @@ export function SettingsPage() {
   const doctorId = myProfile?.id ?? null;
   const { data: doctor, isLoading, isError, refetch } = useDoctorProfileFull(doctorId);
   const updateSettings = useUpdateDoctorSettings(doctorId);
+  const { data: measured } = useConsultAverage(doctorId);
 
   const [regNumber, setRegNumber] = useState("");
   const [regCouncil, setRegCouncil] = useState("");
@@ -121,7 +122,11 @@ export function SettingsPage() {
             <Field label={t("Consultation fee (₹)")} error={feeInvalid ? t("Enter a valid amount") : null}>
               <Input type="number" min={0} icon="rupee" value={fee} aria-invalid={feeInvalid || undefined} onChange={(e) => setFee(Number(e.target.value))} />
             </Field>
-            <Field label={t("Average consult time (min)")} error={minutesInvalid ? t("Between 1 and 240 minutes") : null} hint={t("Used for wait estimates until you have history.")}>
+            <Field label={t("Average consult time (min)")} error={minutesInvalid ? t("Between 1 and 240 minutes") : null} hint={
+                measured?.basis === "history"
+                  ? t("Wait estimates now use your last {n} consultations: about {min} min each.", { n: measured.sampleSize, min: Math.round(measured.minutes) })
+                  : t("Used for wait estimates until you have 5 timed consultations ({n} so far).", { n: measured?.sampleSize ?? 0 })
+              }>
               <Input type="number" min={1} max={240} icon="clock" value={avgMinutes} aria-invalid={minutesInvalid || undefined} onChange={(e) => setAvgMinutes(Number(e.target.value))} />
             </Field>
           </div>

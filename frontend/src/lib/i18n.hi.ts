@@ -497,4 +497,6 @@ export const HI: Record<string, string> = {
   "Rescheduling": "समय बदलना",
   "You can move a booking to another free slot with the same doctor up to 2 hours before it. Your payment carries over and you get a new token and QR code.": "आप अपनी बुकिंग को उसी डॉक्टर के किसी दूसरे खाली स्लॉट पर, स्लॉट से 2 घंटे पहले तक, बदल सकते हैं। आपका भुगतान आगे जुड़ जाता है और आपको नया टोकन और QR कोड मिलता है।",
   "Your token is issued once payment succeeds and follows your appointment time. Waiting-time estimates are based on recent consultations and may change; please check in at the front desk with your QR ticket.": "भुगतान सफल होते ही आपका टोकन जारी होता है और यह आपकी अपॉइंटमेंट के समय के क्रम में होता है। इंतज़ार का अनुमान हाल की कंसल्टेशन पर आधारित है और बदल सकता है; कृपया अपने QR टिकट के साथ फ्रंट डेस्क पर चेक-इन करें।",
+  "About {min} min per patient, from the doctor's last {n} consultations.": "हर मरीज़ पर लगभग {min} मिनट, डॉक्टर की पिछली {n} कंसल्टेशन के आधार पर।",
+  "About {min} min per patient, the doctor's usual consultation time.": "हर मरीज़ पर लगभग {min} मिनट, डॉक्टर का सामान्य कंसल्टेशन समय।",
 };

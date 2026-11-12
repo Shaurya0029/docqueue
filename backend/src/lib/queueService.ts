@@ -65,25 +65,6 @@ export async function setNowServing(doctorId: string, date: string, value: numbe
   });
 }
 
-/** Rolling average of the doctor's last 20 completed consultations, in minutes. */
-export async function getRollingAvgConsultMinutes(doctorId: string): Promise<number> {
-  const recent = await prisma.appointment.findMany({
-    where: { doctorId, status: "COMPLETED", calledAt: { not: null }, completedAt: { not: null } },
-    orderBy: { completedAt: "desc" },
-    take: 20,
-    select: { calledAt: true, completedAt: true },
-  });
-  if (recent.length === 0) {
-    const doctor = await prisma.doctor.findUnique({ where: { id: doctorId } });
-    return doctor?.avgConsultMinutes ?? 15;
-  }
-  const totalMinutes = recent.reduce((sum, a) => {
-    const mins = (a.completedAt!.getTime() - a.calledAt!.getTime()) / 60000;
-    return sum + Math.max(mins, 1);
-  }, 0);
-  return totalMinutes / recent.length;
-}
-
 export async function publishQueueUpdate(doctorId: string, extra: Record<string, unknown> = {}): Promise<void> {
   const date = todayKey();
   const nowServing = await getNowServing(doctorId, date);

@@ -3,7 +3,7 @@ import { prisma } from "../lib/prisma";
 import { asyncHandler, HttpError } from "../middleware/errorHandler";
 import { requireAuth, requireRole } from "../middleware/auth";
 import { bookAppointmentSchema, cancelAppointmentSchema, rescheduleSchema } from "../schemas";
-import { getNowServing, getRollingAvgConsultMinutes } from "../lib/queueService";
+import { estimateWait } from "../lib/waitTime";
 import { assertDoctorAccess } from "../lib/scope";
 import { cancelAppointment, rescheduleAppointment } from "../lib/appointmentChanges";
 import { issueRefund } from "../lib/refunds";
@@ -85,27 +85,32 @@ appointmentsRouter.get(
       throw new HttpError(404, "Appointment not found");
     }
     if (!appointment.queueToken || !appointment.queueDate) {
-      res.json({ status: appointment.status, myToken: null, nowServing: null, patientsAhead: null, estimatedWaitMinutes: null });
+      res.json({
+        status: appointment.status,
+        myToken: null,
+        nowServing: null,
+        patientsAhead: null,
+        estimatedWaitMinutes: null,
+        averageConsultMinutes: null,
+        estimateBasis: null,
+        estimateSampleSize: null,
+      });
       return;
     }
-    const nowServing = await getNowServing(appointment.doctorId, appointment.queueDate);
-    const avgMinutes = await getRollingAvgConsultMinutes(appointment.doctorId);
-    // Tokens follow slot positions, so empty or cancelled slots leave gaps:
-    // count the real patients still waiting ahead, not the token difference.
-    const patientsAhead = await prisma.appointment.count({
-      where: {
-        doctorId: appointment.doctorId,
-        queueDate: appointment.queueDate,
-        status: { in: ["BOOKED", "CHECKED_IN"] },
-        queueToken: { lt: appointment.queueToken, gt: nowServing },
-      },
+    const wait = await estimateWait({
+      doctorId: appointment.doctorId,
+      queueDate: appointment.queueDate,
+      queueToken: appointment.queueToken,
     });
     res.json({
       status: appointment.status,
       myToken: appointment.queueToken,
-      nowServing,
-      patientsAhead,
-      estimatedWaitMinutes: Math.round(patientsAhead * avgMinutes),
+      nowServing: wait.nowServing,
+      patientsAhead: wait.patientsAhead,
+      estimatedWaitMinutes: wait.estimatedWaitMinutes,
+      averageConsultMinutes: wait.averageMinutes,
+      estimateBasis: wait.basis,
+      estimateSampleSize: wait.sampleSize,
     });
   })
 );

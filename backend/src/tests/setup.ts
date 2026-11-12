@@ -12,6 +12,6 @@ export async function resetDb(): Promise<void> {
 
 beforeEach(async () => {
   await resetDb();
-  if (!/\/2$/.test(process.env.REDIS_URL ?? "")) throw new Error("Tests must use Redis database 2");
+  if (!(process.env.REDIS_URL ?? "").endsWith("/2")) throw new Error("Tests must use Redis database 2");
   await redis.flushdb();
 });

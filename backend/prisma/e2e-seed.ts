@@ -18,7 +18,7 @@ async function main() {
   // Start from an empty Redis database too: OTP rate limits and queue state
   // from earlier runs would otherwise leak in (5 OTPs per phone per hour).
   const redisUrl = process.env.REDIS_URL ?? "";
-  if (!/\/1$/.test(redisUrl)) throw new Error("e2e-seed expects its own Redis database (redis://.../1)");
+  if (!redisUrl.endsWith("/1")) throw new Error("e2e-seed expects its own Redis database (redis://.../1)");
   const redis = new Redis(redisUrl);
   await redis.flushdb();
   await redis.quit();
