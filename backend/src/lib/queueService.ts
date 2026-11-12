@@ -87,4 +87,7 @@ export async function publishQueueUpdate(doctorId: string, extra: Record<string,
   const date = todayKey();
   const nowServing = await getNowServing(doctorId, date);
   await publishQueueEvent(doctorId, { type: "QUEUE_UPDATE", doctorId, date, nowServing, ...extra });
+  // Imported lazily: notifications.ts imports this module too.
+  const { notifyThirdInLine } = await import("./notifications");
+  await notifyThirdInLine(doctorId).catch((err) => console.error("third-in-line notification failed", err));
 }

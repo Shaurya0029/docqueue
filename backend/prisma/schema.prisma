@@ -57,6 +57,7 @@ enum NotificationType {
 }
 
 enum NotificationStatus {
+  PENDING // claimed, SMS being sent
   SENT
   FAILED
 }
@@ -257,6 +258,9 @@ model Notification {
   status    NotificationStatus
   payload   String?
   sentAt    DateTime            @default(now())
+  // Set for messages that must go out at most once (reminders, "3rd in
+  // line"): whoever inserts the key first sends; everyone else skips.
+  dedupeKey String?             @unique
 }
 
 model ClinicDay {
