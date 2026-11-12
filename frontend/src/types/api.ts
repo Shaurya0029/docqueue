@@ -105,6 +105,7 @@ export interface QueueEntry {
   token: number | null;
   patientName: string | null;
   status: AppointmentStatus;
+  isWalkIn?: boolean;
 }
 
 export interface DoctorQueue {

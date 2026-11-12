@@ -41,6 +41,14 @@ export const cancelAppointmentSchema = z.object({
   reason: z.string().max(300).optional(),
 });
 
+export const walkInSchema = z.object({
+  fullName: z.string().trim().min(2).max(100),
+  phoneNumber: z.string().regex(/^\+91[6-9]\d{9}$/, "Enter a valid Indian mobile number"),
+  feeCollected: z.boolean(),
+  // The associate confirms the patient agreed, in person, to MEDORA storing their details.
+  consent: z.literal(true, { errorMap: () => ({ message: "The patient's consent is required" }) }),
+});
+
 export const rescheduleSchema = z.object({
   slotId: z.string().uuid(),
 });

@@ -31,6 +31,11 @@ enum PaymentStatus {
   REFUNDED
 }
 
+enum PaymentMethod {
+  ONLINE // Razorpay
+  DESK   // cash or UPI collected at the clinic desk (walk-ins)
+}
+
 enum RefundStatus {
   PENDING
   PROCESSED
@@ -86,6 +91,7 @@ model Patient {
   address       String?
   idDocumentRef String?
   consentAt     DateTime?
+  consentSource String? // "app" (patient ticked the box) or "desk" (told the associate, for walk-ins)
   createdAt     DateTime @default(now())
 
   appointments Appointment[]
@@ -179,6 +185,7 @@ model Appointment {
   slotId        String
   slot          Slot              @relation(fields: [slotId], references: [id])
   status        AppointmentStatus @default(PENDING_PAYMENT)
+  isWalkIn      Boolean           @default(false)
   queueToken    Int?
   queueDate     String?
   cancelledAt   DateTime?
@@ -206,6 +213,7 @@ model Payment {
   appointmentId String        @unique
   appointment   Appointment   @relation(fields: [appointmentId], references: [id])
   amount        Int
+  method        PaymentMethod @default(ONLINE)
   status        PaymentStatus @default(CREATED)
   gatewayRef     String?      @unique // Razorpay payment id (pay_...)
   gatewayOrderId String?      @unique // Razorpay order id (order_...)

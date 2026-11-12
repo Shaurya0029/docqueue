@@ -13,6 +13,7 @@ import { DoctorProfilePage } from "./features/patient/DoctorProfilePage";
 import { BookingPaymentPage } from "./features/patient/BookingPaymentPage";
 import { TicketPage } from "./features/patient/TicketPage";
 import { ReschedulePage } from "./features/patient/ReschedulePage";
+import { WalkInPage } from "./features/associate/WalkInPage";
 import { AppointmentsPage } from "./features/patient/AppointmentsPage";
 import { ProfilePage } from "./features/patient/ProfilePage";
 
@@ -80,6 +81,7 @@ function AppRoutes() {
       >
         <Route index element={<ScannerPage />} />
         <Route path="queue" element={<QueueBoardPage />} />
+        <Route path="walk-in" element={<WalkInPage />} />
       </Route>
 
       <Route

@@ -5,6 +5,7 @@ import { ActiveDoctorProvider, useActiveDoctor } from "./ActiveDoctorContext";
 
 const NAV: NavItem[] = [
   { to: "/associate", label: "Scanner", icon: "scan", end: true },
+  { to: "/associate/walk-in", label: "Walk-in", icon: "user" },
   { to: "/associate/queue", label: "Queue board", icon: "queue" },
 ];
 

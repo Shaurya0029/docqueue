@@ -28,9 +28,14 @@ export async function issueRefund(params: { paymentId: string; actorUserId: stri
   });
   let status: "PROCESSED" | "FAILED" = "PROCESSED";
   let refundRef: string | null = null;
+  const atDesk = payment.method === "DESK";
   try {
-    if (!payment.gatewayRef) throw new Error("payment has no gateway reference");
-    refundRef = (await refundPayment(payment.gatewayRef, payment.amount * 100)).refundId;
+    if (atDesk) {
+      // Collected in cash/UPI at the desk, so it is handed back there.
+    } else {
+      if (!payment.gatewayRef) throw new Error("payment has no gateway reference");
+      refundRef = (await refundPayment(payment.gatewayRef, payment.amount * 100)).refundId;
+    }
   } catch (err) {
     status = "FAILED";
     console.error(`refund for payment ${payment.id} failed`, err);
@@ -46,7 +51,9 @@ export async function issueRefund(params: { paymentId: string; actorUserId: stri
     await sendNotification({
       userId: payment.appointment.patient.userId,
       type: "REFUND_ISSUED",
-      message: `A refund of Rs ${payment.amount} has been issued to your original payment method. It usually arrives in 5-7 working days.`,
+      message: atDesk
+        ? `A refund of Rs ${payment.amount} is ready for you at the clinic desk.`
+        : `A refund of Rs ${payment.amount} has been issued to your original payment method. It usually arrives in 5-7 working days.`,
     });
   }
   await writeAuditLog({

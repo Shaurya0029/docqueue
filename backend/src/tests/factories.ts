@@ -6,7 +6,7 @@ import { istDateTime, toDateKey } from "../lib/dates";
 let counter = 0;
 function uniquePhone(): string {
   counter += 1;
-  return `+9198${String(9000000 + counter).padStart(7, "0")}`;
+  return `+919${String(100000000 + counter)}`; // valid 10-digit Indian mobile
 }
 
 export async function createClinicWithAdmin() {

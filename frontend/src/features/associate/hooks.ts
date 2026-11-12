@@ -58,3 +58,19 @@ export function usePauseQueue(doctorId: string | null) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["doctor-queue", doctorId] }),
   });
 }
+
+export interface WalkInResult {
+  appointmentId: string;
+  token: number;
+  slotStartsAt: string;
+  patientName: string;
+}
+
+export function useAddWalkIn(doctorId: string | null) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: { fullName: string; phoneNumber: string; feeCollected: boolean; consent: true }) =>
+      (await api.post<WalkInResult>(`/doctors/${doctorId}/walk-ins`, body)).data,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["doctor-queue", doctorId] }),
+  });
+}

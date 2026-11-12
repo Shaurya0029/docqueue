@@ -124,6 +124,9 @@ export function QueueBoard({ queue, connected, onCallNext, callNextPending, call
                   <div className="flex items-center gap-2">
                     <Avatar name={entry.patientName} size="sm" />
                     <p className="truncate font-semibold text-slate-900">{entry.patientName ?? t("Patient")}</p>
+                    {entry.isWalkIn && (
+                      <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-700 ring-1 ring-amber-200">{t("Walk-in")}</span>
+                    )}
                   </div>
                   <div className="mt-1.5">
                     <StatusChip status={entry.status} />

@@ -6,7 +6,8 @@ import { assertDoctorAccess } from "../lib/scope";
 import { assertTransition } from "../lib/lifecycle";
 import { setNowServing, publishQueueUpdate } from "../lib/queueService";
 import { todayKey } from "../lib/dates";
-import { pauseQueueSchema } from "../schemas";
+import { pauseQueueSchema, walkInSchema } from "../schemas";
+import { addWalkIn } from "../lib/walkIns";
 import { writeAuditLog } from "../lib/audit";
 
 export const queueRouter = Router();
@@ -47,6 +48,7 @@ queueRouter.get(
         token: a.queueToken,
         patientName: a.patient.fullName,
         status: a.status,
+        isWalkIn: a.isWalkIn,
       })),
     });
   })
@@ -71,6 +73,26 @@ queueRouter.get(
       orderBy: { queueToken: "asc" },
     });
     res.json({ date, appointments });
+  })
+);
+
+/** Associate adds a patient who has no app; they get the next free slot today and a token. */
+queueRouter.post(
+  "/doctors/:id/walk-ins",
+  requireAuth,
+  requireRole("ASSOCIATE", "DOCTOR"),
+  asyncHandler(async (req, res) => {
+    const doctorId = req.params.id;
+    await assertDoctorAccess(req.auth!, doctorId);
+    const body = walkInSchema.parse(req.body);
+    const result = await addWalkIn({
+      doctorId,
+      fullName: body.fullName,
+      phoneNumber: body.phoneNumber,
+      feeCollected: body.feeCollected,
+      actorUserId: req.auth!.userId,
+    });
+    res.status(201).json(result);
   })
 );
 

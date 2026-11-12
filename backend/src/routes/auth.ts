@@ -47,6 +47,7 @@ authRouter.post(
             create: {
               fullName: fullName ?? null,
               consentAt: new Date(),
+              consentSource: "app",
             },
           },
         },

@@ -4,7 +4,7 @@ import { useAssignedDoctors } from "./hooks";
 interface ActiveDoctorValue {
   doctorId: string | null;
   setDoctorId: (id: string) => void;
-  doctors: { id: string; fullName: string }[];
+  doctors: { id: string; fullName: string; consultationFee?: number }[];
   loading: boolean;
 }
 
