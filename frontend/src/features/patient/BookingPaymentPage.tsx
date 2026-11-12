@@ -126,7 +126,7 @@ export function BookingPaymentPage() {
               <Avatar name={appointment.doctor?.fullName} />
               <div className="min-w-0">
                 <p className="truncate font-bold text-ink">{appointment.doctor?.fullName ?? t("Your doctor")}</p>
-                <p className="text-sm font-semibold text-brand-600">{appointment.doctor?.specialization}</p>
+                <p className="text-sm font-semibold text-brand-600">{appointment.doctor?.specialization ? t(appointment.doctor.specialization) : null}</p>
               </div>
             </div>
             <StatusChip status={appointment.status} />

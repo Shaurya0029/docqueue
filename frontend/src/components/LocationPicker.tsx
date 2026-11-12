@@ -13,13 +13,14 @@ import {
 } from "../lib/location";
 import { Icon } from "./icons";
 import { Alert, Button, Field, Input, cx } from "./ui";
+import { msg } from "../lib/i18n";
 
 const ERROR_KEYS: Record<DetectErrorCode, string> = {
-  unsupported: "Your browser doesn't support location detection. Please enter your location below.",
-  denied: "Location permission is blocked. Allow it in your browser settings, or enter your location below.",
-  unavailable: "We couldn't find your position. Please try again or enter your location below.",
-  timeout: "Finding your location took too long. Please try again or enter your location below.",
-  lookup: "We found your position but couldn't look up the city. Please enter your location below.",
+  unsupported: msg("Your browser doesn't support location detection. Please enter your location below."),
+  denied: msg("Location permission is blocked. Allow it in your browser settings, or enter your location below."),
+  unavailable: msg("We couldn't find your position. Please try again or enter your location below."),
+  timeout: msg("Finding your location took too long. Please try again or enter your location below."),
+  lookup: msg("We found your position but couldn't look up the city. Please enter your location below."),
 };
 
 /** Pill shown in the hero: current location + opens the picker. */

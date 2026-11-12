@@ -2,11 +2,12 @@ import { AppShell, type NavItem } from "../../components/AppShell";
 import { Select } from "../../components/ui";
 import { useAuth } from "../auth/AuthContext";
 import { ActiveDoctorProvider, useActiveDoctor } from "./ActiveDoctorContext";
+import { msg } from "../../lib/i18n";
 
 const NAV: NavItem[] = [
-  { to: "/associate", label: "Scanner", icon: "scan", end: true },
-  { to: "/associate/walk-in", label: "Walk-in", icon: "user" },
-  { to: "/associate/queue", label: "Queue board", icon: "queue" },
+  { to: "/associate", label: msg("Scanner"), icon: "scan", end: true },
+  { to: "/associate/walk-in", label: msg("Walk-in"), icon: "user" },
+  { to: "/associate/queue", label: msg("Queue board"), icon: "queue" },
 ];
 
 function DoctorSwitcher() {
@@ -27,7 +28,7 @@ export function AssociateLayout() {
   const { logout } = useAuth();
   return (
     <ActiveDoctorProvider>
-      <AppShell variant="mobile" roleLabel="Front desk" nav={NAV} onLogout={logout} headerExtra={<DoctorSwitcher />} />
+      <AppShell variant="mobile" roleLabel={msg("Front desk")} nav={NAV} onLogout={logout} headerExtra={<DoctorSwitcher />} />
     </ActiveDoctorProvider>
   );
 }

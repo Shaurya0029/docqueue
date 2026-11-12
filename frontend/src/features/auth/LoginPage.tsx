@@ -20,23 +20,24 @@ import {
 import { api, apiErrorCode, apiErrorMessage } from "../../lib/api";
 import { useAuth } from "./AuthContext";
 import { useT } from "../../lib/i18n";
+import { msg } from "../../lib/i18n";
 
 type Tab = "patient" | "staff";
 
 const EASE = [0.22, 1, 0.36, 1] as const;
-const PHONE_ERROR = "Enter a valid 10-digit Indian mobile number";
+const PHONE_ERROR = msg("Enter a valid 10-digit Indian mobile number");
 
 const STEPS: { icon: IconName; title: string; text: string }[] = [
-  { icon: "search", title: "Discover the right doctor", text: "Browse trusted doctors by speciality, see fees and the next free slot at a glance." },
-  { icon: "calendarCheck", title: "Book & pay in minutes", text: "Pick a time that suits you and pay securely. Your queue token is issued instantly." },
-  { icon: "ticket", title: "Track your token live", text: "See who's being served and your estimated wait, so you arrive just in time." },
+  { icon: "search", title: msg("Discover the right doctor"), text: msg("Browse trusted doctors by speciality, see fees and the next free slot at a glance.") },
+  { icon: "calendarCheck", title: msg("Book & pay in minutes"), text: msg("Pick a time that suits you and pay securely. Your queue token is issued instantly.") },
+  { icon: "ticket", title: msg("Track your token live"), text: msg("See who's being served and your estimated wait, so you arrive just in time.") },
 ];
 
 const CLINIC_FEATURES: { icon: IconName; text: string }[] = [
-  { icon: "qr", text: "QR check-in at the front desk" },
-  { icon: "queue", text: "Live queue board with one-tap “Call next”" },
-  { icon: "clock", text: "Flexible weekly slot templates" },
-  { icon: "wallet", text: "Earnings and clinic-wide analytics" },
+  { icon: "qr", text: msg("QR check-in at the front desk") },
+  { icon: "queue", text: msg("Live queue board with one-tap “Call next”") },
+  { icon: "clock", text: msg("Flexible weekly slot templates") },
+  { icon: "wallet", text: msg("Earnings and clinic-wide analytics") },
 ];
 
 export function LoginPage() {

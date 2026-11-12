@@ -10,6 +10,13 @@ export function translate(lang: "en" | "hi", text: string, vars?: Vars) {
   return fill(lang === "hi" ? (HI[text] ?? text) : text, vars);
 }
 
+/**
+ * Marks an English string stored in a constant (a menu label, a status name)
+ * as translatable, so scripts/check-i18n.mjs can check it has Hindi. It
+ * returns the string unchanged; translate it with t() where it is shown.
+ */
+export const msg = (text: string): string => text;
+
 export function useT() {
   const { appearance } = usePreferences();
   return (text: string, vars?: Vars) => translate(appearance.lang, text, vars);

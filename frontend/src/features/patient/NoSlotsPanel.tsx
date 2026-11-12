@@ -72,7 +72,7 @@ export function NoSlotsPanel({ doctorId, doctorName }: { doctorId: string; docto
                     {d.fullName}
                     {d.isVerified && <Icon name="verified" className="h-4 w-4 shrink-0 text-brand-600" aria-label={t("Verified")} />}
                   </p>
-                  <p className="truncate text-sm text-brand-600">{d.specialization}</p>
+                  <p className="truncate text-sm text-brand-600">{t(d.specialization)}</p>
                   <p className="text-xs font-semibold text-success">
                     {t("Next: {date}, {time}", { date: formatDate(d.nextSlot.startsAt), time: formatTime(d.nextSlot.startsAt) })}
                   </p>

@@ -2,64 +2,65 @@ import { Link } from "react-router-dom";
 import { Icon } from "../../components/icons";
 import { Card, Logo, Reveal } from "../../components/ui";
 import { useT } from "../../lib/i18n";
+import { msg } from "../../lib/i18n";
 
 type Doc = { title: string; intro: string; sections: { heading: string; body: string }[] };
 
 // NOTE: plain-language summaries of how the app handles data today. Have these reviewed before going live.
 const DOCS: Record<"privacy" | "terms", Doc> = {
   privacy: {
-    title: "Privacy policy",
-    intro: "How MEDORA collects, uses and protects your information.",
+    title: msg("Privacy policy"),
+    intro: msg("How MEDORA collects, uses and protects your information."),
     sections: [
       {
-        heading: "What we collect",
-        body: "Your mobile number (used to sign you in with a one-time code), your name and address if you add them, and the appointments you book — doctor, time slot, queue token and payment status.",
+        heading: msg("What we collect"),
+        body: msg("Your mobile number (used to sign you in with a one-time code), your name and address if you add them, and the appointments you book — doctor, time slot, queue token and payment status."),
       },
       {
-        heading: "How we use it",
-        body: "To book and manage your appointments, issue queue tokens, send booking, reminder, queue and refund notifications by SMS, and process payments and refunds through our payment partner.",
+        heading: msg("How we use it"),
+        body: msg("To book and manage your appointments, issue queue tokens, send booking, reminder, queue and refund notifications by SMS, and process payments and refunds through our payment partner."),
       },
       {
-        heading: "Location",
-        body: "If you choose “Use my current location”, your device's coordinates are sent once to a location lookup service to find your city. Only the city name is kept, on your device.",
+        heading: msg("Location"),
+        body: msg("If you choose “Use my current location”, your device's coordinates are sent once to a location lookup service to find your city. Only the city name is kept, on your device."),
       },
       {
-        heading: "Who can see it",
-        body: "Only the clinic staff (doctors, front-desk associates and clinic admins) of the clinic you book with. Every staff action on patient data is recorded in an audit log.",
+        heading: msg("Who can see it"),
+        body: msg("Only the clinic staff (doctors, front-desk associates and clinic admins) of the clinic you book with. Every staff action on patient data is recorded in an audit log."),
       },
       {
-        heading: "ID documents",
-        body: "If you add an ID document it is stored encrypted and only the last four digits are ever shown.",
+        heading: msg("ID documents"),
+        body: msg("If you add an ID document it is stored encrypted and only the last four digits are ever shown."),
       },
       {
-        heading: "Your rights",
-        body: "Under India's Digital Personal Data Protection (DPDP) Act you have the right to request a copy of your data or its deletion.",
+        heading: msg("Your rights"),
+        body: msg("Under India's Digital Personal Data Protection (DPDP) Act you have the right to request a copy of your data or its deletion."),
       },
     ],
   },
   terms: {
-    title: "Terms of service",
-    intro: "The rules for booking and attending appointments through MEDORA.",
+    title: msg("Terms of service"),
+    intro: msg("The rules for booking and attending appointments through MEDORA."),
     sections: [
       {
-        heading: "Bookings",
-        body: "A slot is held for you for 10 minutes while you complete payment. If payment isn't completed in that time the slot is released for other patients.",
+        heading: msg("Bookings"),
+        body: msg("A slot is held for you for 10 minutes while you complete payment. If payment isn't completed in that time the slot is released for other patients."),
       },
       {
-        heading: "Cancellations & refunds",
-        body: "Cancel 2 or more hours before your slot for a full refund to your original payment method. Cancellations made later than that are not refunded.",
+        heading: msg("Cancellations & refunds"),
+        body: msg("Cancel 2 or more hours before your slot for a full refund to your original payment method. Cancellations made later than that are not refunded."),
       },
       {
-        heading: "Queue tokens",
-        body: "Your token is issued once payment succeeds. Waiting-time estimates are based on recent consultations and may change; please check in at the front desk with your QR ticket.",
+        heading: msg("Queue tokens"),
+        body: msg("Your token is issued once payment succeeds. Waiting-time estimates are based on recent consultations and may change; please check in at the front desk with your QR ticket."),
       },
       {
-        heading: "No-shows",
-        body: "If you are not present when your token is called, the clinic may mark the appointment as a no-show.",
+        heading: msg("No-shows"),
+        body: msg("If you are not present when your token is called, the clinic may mark the appointment as a no-show."),
       },
       {
-        heading: "Medical advice",
-        body: "MEDORA helps you find and book doctors. Medical advice is provided by the doctors and clinics you consult, not by MEDORA.",
+        heading: msg("Medical advice"),
+        body: msg("MEDORA helps you find and book doctors. Medical advice is provided by the doctors and clinics you consult, not by MEDORA."),
       },
     ],
   },

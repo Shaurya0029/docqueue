@@ -6,6 +6,7 @@ import { useT } from "../lib/i18n";
 import { FONTS, THEMES, ensureFontLoaded, type FontId, type ThemeId, type TextSize } from "../lib/theme";
 import { Icon, type IconName } from "./icons";
 import { Button, cx } from "./ui";
+import { msg } from "../lib/i18n";
 
 /** Opens the appearance panel. `tone="onGradient"` for use on the blue login hero. */
 export function AppearanceButton({ tone = "default", withLabel }: { tone?: "default" | "onGradient" | "sidebar"; withLabel?: boolean }) {
@@ -28,7 +29,7 @@ export function AppearanceButton({ tone = "default", withLabel }: { tone?: "defa
 }
 
 const THEME_ORDER: ThemeId[] = ["blue", "teal", "violet", "rose"];
-const THEME_LABEL_KEYS: Record<ThemeId, string> = { blue: "MEDORA Blue", teal: "Mint Teal", violet: "Royal Violet", rose: "Coral Rose" };
+const THEME_LABEL_KEYS: Record<ThemeId, string> = { blue: msg("MEDORA Blue"), teal: msg("Mint Teal"), violet: msg("Royal Violet"), rose: msg("Coral Rose") };
 
 function Group({ title, icon, children }: { title: string; icon: IconName; children: React.ReactNode }) {
   return (

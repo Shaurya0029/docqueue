@@ -89,7 +89,7 @@ export function TicketPage() {
               <p className="relative text-7xl font-extrabold leading-none tracking-tight">#{appointment.queueToken ?? "–"}</p>
               {appointment.doctor && (
                 <p className="relative mt-2 text-sm font-semibold text-white/90">
-                  {appointment.doctor.fullName} · {appointment.doctor.specialization}
+                  {appointment.doctor.fullName} · {t(appointment.doctor.specialization)}
                 </p>
               )}
             </div>

@@ -13,6 +13,7 @@ import { AnimatePresence, motion } from "motion/react";
 import type { AppointmentStatus } from "../types/api";
 import { Icon, type IconName } from "./icons";
 import { useT } from "../lib/i18n";
+import { msg } from "../lib/i18n";
 
 export const cx = (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(" ");
 
@@ -642,13 +643,13 @@ const STATUS_STYLES: Record<AppointmentStatus, { chip: string; dot: string; live
 };
 
 const STATUS_LABELS: Record<AppointmentStatus, string> = {
-  PENDING_PAYMENT: "Awaiting payment",
-  BOOKED: "Booked",
-  CHECKED_IN: "Checked in",
-  IN_CONSULTATION: "In consultation",
-  COMPLETED: "Completed",
-  CANCELLED: "Cancelled",
-  NO_SHOW: "No-show",
+  PENDING_PAYMENT: msg("Awaiting payment"),
+  BOOKED: msg("Booked"),
+  CHECKED_IN: msg("Checked in"),
+  IN_CONSULTATION: msg("In consultation"),
+  COMPLETED: msg("Completed"),
+  CANCELLED: msg("Cancelled"),
+  NO_SHOW: msg("No-show"),
 };
 
 export function StatusChip({ status }: { status: AppointmentStatus }) {

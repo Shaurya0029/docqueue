@@ -8,12 +8,13 @@ import { useDoctorSearch, useMyAppointments } from "./hooks";
 import { LocationChip, LocationPicker } from "../../components/LocationPicker";
 import { cityOf, detectLocation, hasLocationPermission, usePatientLocation } from "../../lib/location";
 import { useT } from "../../lib/i18n";
+import { msg } from "../../lib/i18n";
 
-const SPECIALIZATIONS = ["General Physician", "Dermatologist", "Pediatrician", "Cardiologist", "Dentist"];
+const SPECIALIZATIONS = [msg("General Physician"), msg("Dermatologist"), msg("Pediatrician"), msg("Cardiologist"), msg("Dentist")];
 
 function greeting() {
   const h = clinicHour(new Date().toISOString());
-  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+  return h < 12 ? msg("Good morning") : h < 17 ? msg("Good afternoon") : msg("Good evening");
 }
 
 export function HomePage() {
@@ -162,7 +163,7 @@ export function HomePage() {
                         {doctor.fullName}
                         {doctor.isVerified && <Icon name="verified" className="h-4 w-4 shrink-0 text-brand-500" aria-label={t("Verified")} />}
                       </p>
-                      <p className="text-sm font-semibold text-brand-600">{doctor.specialization}</p>
+                      <p className="text-sm font-semibold text-brand-600">{t(doctor.specialization)}</p>
                     </div>
                     <p className="shrink-0 text-right">
                       <span className="block text-lg font-extrabold text-ink">{formatRupees(doctor.consultationFee)}</span>

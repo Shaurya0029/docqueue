@@ -9,11 +9,12 @@ import type { Slot } from "../../types/api";
 import { useBookSlot, useDoctorProfile } from "./hooks";
 import { useT } from "../../lib/i18n";
 import { NoSlotsPanel } from "./NoSlotsPanel";
+import { msg } from "../../lib/i18n";
 
 const PERIODS = [
-  { label: "Morning", icon: "sparkles", test: (h: number) => h < 12 },
-  { label: "Afternoon", icon: "clock", test: (h: number) => h >= 12 && h < 17 },
-  { label: "Evening", icon: "clock", test: (h: number) => h >= 17 },
+  { label: msg("Morning"), icon: "sparkles", test: (h: number) => h < 12 },
+  { label: msg("Afternoon"), icon: "clock", test: (h: number) => h >= 12 && h < 17 },
+  { label: msg("Evening"), icon: "clock", test: (h: number) => h >= 17 },
 ] as const;
 
 export function DoctorProfilePage() {
@@ -68,7 +69,7 @@ export function DoctorProfilePage() {
               {doctor.fullName}
               {doctor.isVerified && <Icon name="verified" className="h-5 w-5 text-brand-500" aria-label={t("Verified")} />}
             </h1>
-            <p className="font-semibold text-brand-600">{doctor.specialization}</p>
+            <p className="font-semibold text-brand-600">{t(doctor.specialization)}</p>
             {doctor.registration?.number && (
               <p className="text-xs text-muted">
                 {t("Reg. no. {number}, {council}", { number: doctor.registration.number, council: doctor.registration.council ?? "" })}
