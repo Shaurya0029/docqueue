@@ -2,7 +2,7 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { asyncHandler, HttpError } from "../middleware/errorHandler";
 import { requireAuth, requireRole } from "../middleware/auth";
-import { assertDoctorAccess } from "../lib/scope";
+import { assertDoctorAccess , resolveDoctorScope } from "../lib/scope";
 import { toDateKey } from "../lib/dates";
 import { generateSlots } from "../lib/slots";
 import { assertDayNotRenumbered } from "../lib/queueService";
@@ -22,8 +22,7 @@ doctorSettingsRouter.get(
   requireAuth,
   requireRole("DOCTOR", "ADMIN"),
   asyncHandler(async (req, res) => {
-    const doctorId = req.params.id;
-    await assertDoctorAccess(req.auth!, doctorId);
+    const doctorId = await resolveDoctorScope(req.auth!, req.params.id);
     const slots = await prisma.slot.findMany({
       where: { doctorId, startsAt: { gte: new Date() } },
       orderBy: { startsAt: "asc" },
@@ -37,8 +36,7 @@ doctorSettingsRouter.post(
   requireAuth,
   requireRole("DOCTOR", "ADMIN"),
   asyncHandler(async (req, res) => {
-    const doctorId = req.params.id;
-    await assertDoctorAccess(req.auth!, doctorId);
+    const doctorId = await resolveDoctorScope(req.auth!, req.params.id);
 
     if (req.body && Array.isArray((req.body as { pattern?: unknown }).pattern)) {
       const { pattern, fromDate, toDate } = slotBulkCreateSchema.parse(req.body);
@@ -118,8 +116,7 @@ doctorSettingsRouter.patch(
   requireAuth,
   requireRole("DOCTOR", "ADMIN"),
   asyncHandler(async (req, res) => {
-    const doctorId = req.params.id;
-    await assertDoctorAccess(req.auth!, doctorId);
+    const doctorId = await resolveDoctorScope(req.auth!, req.params.id);
     const data = doctorUpdateSchema.parse(req.body);
     const current = await prisma.doctor.findUniqueOrThrow({ where: { id: doctorId } });
     const registrationChanged =
@@ -151,8 +148,7 @@ doctorSettingsRouter.get(
   requireAuth,
   requireRole("DOCTOR", "ADMIN"),
   asyncHandler(async (req, res) => {
-    const doctorId = req.params.id;
-    await assertDoctorAccess(req.auth!, doctorId);
+    const doctorId = await resolveDoctorScope(req.auth!, req.params.id);
 
     const payments = await prisma.payment.findMany({
       where: { status: "PAID", appointment: { doctorId } },

@@ -53,7 +53,8 @@ async function resolveAllowedDoctorId(
 
   if (auth.role === "PATIENT") {
     const appointment = await prisma.appointment.findFirst({
-      where: { patientId: auth.profileId, doctorId: requestedDoctorId, status: { not: "CANCELLED" } },
+      // Only while the patient has a live booking with this doctor.
+      where: { patientId: auth.profileId, doctorId: requestedDoctorId, status: { in: ["BOOKED", "CHECKED_IN", "IN_CONSULTATION"] } },
     });
     if (!appointment) throw new Error("No appointment with this doctor");
     return requestedDoctorId;
@@ -61,6 +62,8 @@ async function resolveAllowedDoctorId(
 
   throw new Error("Role not allowed on this socket");
 }
+
+export { resolveAllowedDoctorId };
 
 export function attachWebSocketServer(httpServer: HttpServer): void {
   const wss = new WebSocketServer({ server: httpServer, path: "/ws" });

@@ -8,6 +8,21 @@ import type { JwtPayload } from "./jwt";
  * it as a lookup key. This is the single place that enforces "doctor A can
  * never read doctor B's data".
  */
+/**
+ * The doctor a request may act on, derived from the JWT, never trusted from
+ * the URL: a doctor always gets their own profile (any other id is a 403),
+ * an associate only an assigned doctor, an admin only a doctor in their own
+ * clinics. Routes query with the returned id.
+ */
+export async function resolveDoctorScope(auth: JwtPayload, requestedDoctorId: string): Promise<string> {
+  if (auth.role === "DOCTOR") {
+    if (requestedDoctorId !== auth.profileId) throw new HttpError(403, "Not your doctor profile");
+    return auth.profileId;
+  }
+  await assertDoctorAccess(auth, requestedDoctorId);
+  return requestedDoctorId;
+}
+
 export async function assertDoctorAccess(auth: JwtPayload, doctorId: string): Promise<void> {
   if (auth.role === "DOCTOR") {
     if (auth.profileId !== doctorId) throw new HttpError(403, "Not your doctor profile");

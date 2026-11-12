@@ -2,7 +2,7 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { asyncHandler, HttpError } from "../middleware/errorHandler";
 import { requireAuth, requireRole } from "../middleware/auth";
-import { assertDoctorAccess } from "../lib/scope";
+import { assertDoctorAccess , resolveDoctorScope } from "../lib/scope";
 import { assertTransition } from "../lib/lifecycle";
 import { setNowServing, publishQueueUpdate } from "../lib/queueService";
 import { todayKey } from "../lib/dates";
@@ -30,8 +30,7 @@ queueRouter.get(
   requireAuth,
   requireRole("DOCTOR", "ASSOCIATE"),
   asyncHandler(async (req, res) => {
-    const doctorId = req.params.id;
-    await assertDoctorAccess(req.auth!, doctorId);
+    const doctorId = await resolveDoctorScope(req.auth!, req.params.id);
     const date = todayKey();
     const appointments = await prisma.appointment.findMany({
       where: { doctorId, queueDate: date, status: { notIn: ["PENDING_PAYMENT", "CANCELLED"] } },
@@ -59,8 +58,7 @@ queueRouter.get(
   requireAuth,
   requireRole("DOCTOR", "ASSOCIATE"),
   asyncHandler(async (req, res) => {
-    const doctorId = req.params.id;
-    await assertDoctorAccess(req.auth!, doctorId);
+    const doctorId = await resolveDoctorScope(req.auth!, req.params.id);
     const date = String(req.query.date ?? todayKey());
     const appointments = await prisma.appointment.findMany({
       where: { doctorId, queueDate: date },
@@ -82,8 +80,7 @@ queueRouter.post(
   requireAuth,
   requireRole("ASSOCIATE", "DOCTOR"),
   asyncHandler(async (req, res) => {
-    const doctorId = req.params.id;
-    await assertDoctorAccess(req.auth!, doctorId);
+    const doctorId = await resolveDoctorScope(req.auth!, req.params.id);
     const body = walkInSchema.parse(req.body);
     const result = await addWalkIn({
       doctorId,
@@ -101,8 +98,7 @@ queueRouter.post(
   requireAuth,
   requireRole("DOCTOR", "ASSOCIATE"),
   asyncHandler(async (req, res) => {
-    const doctorId = req.params.id;
-    await assertDoctorAccess(req.auth!, doctorId);
+    const doctorId = await resolveDoctorScope(req.auth!, req.params.id);
     const date = todayKey();
 
     const next = await prisma.appointment.findFirst({
@@ -183,8 +179,7 @@ queueRouter.post(
   requireAuth,
   requireRole("DOCTOR", "ASSOCIATE"),
   asyncHandler(async (req, res) => {
-    const doctorId = req.params.id;
-    await assertDoctorAccess(req.auth!, doctorId);
+    const doctorId = await resolveDoctorScope(req.auth!, req.params.id);
     const { status } = pauseQueueSchema.parse(req.body);
     const date = todayKey();
 
