@@ -5,6 +5,7 @@ import { writeAuditLog } from "./audit";
 import { cancelAppointment } from "./appointmentChanges";
 import { revokeUserSessions } from "./revocation";
 import { assertFamilyMember, presentMember } from "./family";
+import { eraseWaitlist, waitlistForExport } from "./waitlist";
 import type { Prisma } from "@prisma/client";
 
 const appointmentInclude = {
@@ -83,10 +84,14 @@ export async function exportPatientData(patientId: string, actorUserId: string) 
       consent: { givenAt: patient.consentAt, givenVia: patient.consentSource },
     },
     appointments: patient.appointments.map(exportAppointment),
-    familyMembers: patient.familyMembers.map((m) => ({
-      ...presentMember(m),
-      appointments: m.appointments.map(exportAppointment),
-    })),
+    waitlist: await waitlistForExport(patient.id),
+    familyMembers: await Promise.all(
+      patient.familyMembers.map(async (m) => ({
+        ...presentMember(m),
+        appointments: m.appointments.map(exportAppointment),
+        waitlist: await waitlistForExport(m.id),
+      }))
+    ),
     messagesSent: notifications.map(({ patientId: about, ...n }) => ({
       ...n,
       about: about && names.has(about) ? names.get(about) : "you",
@@ -110,6 +115,8 @@ async function erasePatientRecord(patientId: string, actorUserId: string, reason
   for (const a of upcoming) {
     await cancelAppointment({ appointmentId: a.id, by: "patient", actorUserId, reason });
   }
+  // Leaves every waitlist (a pending offer passes to the next person), then deletes the records.
+  await eraseWaitlist(patientId);
   await prisma.$transaction([
     prisma.notification.deleteMany({ where: { patientId } }),
     prisma.slotAlert.deleteMany({ where: { patientId } }),

@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
-import type { Appointment, DoctorProfile, DoctorSummary, FamilyMember, FamilyMemberInput, LeaveAlertState, QueueStatus, Slot } from "../../types/api";
+import type { Appointment, DoctorProfile, DoctorSummary, FamilyMember, FamilyMemberInput, LeaveAlertState, QueueStatus, Slot, WaitlistEntry } from "../../types/api";
 
 export function useDoctorSearch(params: { name?: string; specialization?: string; city?: string }) {
   return useQuery({
@@ -214,3 +214,40 @@ export function useDeleteFamilyMember() {
     },
   });
 }
+
+/** Fully booked days for a doctor: these can be waitlisted. */
+export function useFullDays(doctorId: string | undefined) {
+  return useQuery({
+    queryKey: ["full-days", doctorId],
+    queryFn: async () => (await api.get<{ dates: string[] }>(`/waitlist/doctors/${doctorId}/full-days`)).data.dates,
+    enabled: !!doctorId,
+  });
+}
+
+/** The account's live waitlist entries; refreshed often so a new offer shows up quickly. */
+export function useMyWaitlist() {
+  return useQuery({
+    queryKey: ["my-waitlist"],
+    queryFn: async () => (await api.get<{ entries: WaitlistEntry[] }>("/waitlist/mine")).data.entries,
+    refetchInterval: 15_000,
+  });
+}
+
+function useWaitlistMutation<T, R>(fn: (arg: T) => Promise<R>) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: fn,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["my-waitlist"] });
+      queryClient.invalidateQueries({ queryKey: ["my-appointments"] });
+    },
+  });
+}
+
+export const useJoinWaitlist = () =>
+  useWaitlistMutation(async (body: { doctorId: string; date: string; patientId?: string }) => (await api.post("/waitlist", body)).data);
+export const useLeaveWaitlist = () => useWaitlistMutation(async (entryId: string) => (await api.post(`/waitlist/${entryId}/leave`)).data);
+export const useDeclineOffer = () => useWaitlistMutation(async (offerId: string) => (await api.post(`/waitlist/offers/${offerId}/decline`)).data);
+/** Claims the held slot: returns a booking awaiting payment. */
+export const useClaimOffer = () =>
+  useWaitlistMutation(async (offerId: string) => (await api.post<{ appointment: Appointment }>(`/waitlist/offers/${offerId}/claim`)).data.appointment);

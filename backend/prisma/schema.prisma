@@ -62,6 +62,22 @@ enum FamilyRelationship {
   OTHER
 }
 
+enum WaitlistStatus {
+  WAITING // in line
+  OFFERED // has a pending offer (one at a time)
+  CLAIMED // took an offered slot: done
+  LEFT    // left the waitlist, or their data was deleted
+  EXPIRED // the date passed
+}
+
+enum WaitlistOfferStatus {
+  PENDING   // held for this person for 10 minutes
+  CLAIMED
+  DECLINED
+  EXPIRED
+  WITHDRAWN // they left the waitlist, or the slot can no longer be offered
+}
+
 enum NotificationChannel {
   SMS
   PUSH
@@ -75,6 +91,7 @@ enum NotificationType {
   REFUND_ISSUED
   SLOTS_AVAILABLE
   LEAVE_NOW
+  WAITLIST_OFFER
 }
 
 enum NotificationStatus {
@@ -133,6 +150,7 @@ model Patient {
   appointments Appointment[]
   slotAlerts   SlotAlert[]
   notifications Notification[]
+  waitlistEntries WaitlistEntry[]
 
   @@index([accountHolderId])
 }
@@ -203,6 +221,7 @@ model Doctor {
   clinicDays     ClinicDay[]
   associateLinks AssociateDoctor[]
   slotAlerts     SlotAlert[]
+  waitlistEntries WaitlistEntry[]
 }
 
 model Associate {
@@ -237,6 +256,7 @@ model Slot {
   createdAt DateTime @default(now())
 
   appointments Appointment[]
+  waitlistOffers WaitlistOffer[]
 
   @@index([doctorId, slotDate])
   @@unique([doctorId, startsAt])
@@ -356,4 +376,46 @@ model ClinicDay {
   nowServing Int             @default(0)
 
   @@unique([doctorId, date])
+}
+
+// Waitlist for a doctor on a fully booked day. When a slot on that day is
+// freed, it is offered to the first person waiting (join order), held for
+// them for 10 minutes; they claim it and then pay as usual. Different from
+// SlotAlert, which only texts when the doctor publishes new slots.
+//
+// Hand-written partial unique indexes (migration *_waitlist):
+//   one live entry (WAITING or OFFERED) per patient, doctor and date;
+//   one PENDING offer per slot.
+model WaitlistEntry {
+  id        String         @id @default(uuid())
+  patientId String
+  patient   Patient        @relation(fields: [patientId], references: [id])
+  doctorId  String
+  doctor    Doctor         @relation(fields: [doctorId], references: [id])
+  date      String // yyyy-mm-dd (IST)
+  status    WaitlistStatus @default(WAITING)
+  createdAt DateTime       @default(now()) // join order
+  endedAt   DateTime?
+
+  offers WaitlistOffer[]
+
+  @@index([doctorId, date, status, createdAt])
+  @@index([patientId])
+}
+
+model WaitlistOffer {
+  id            String              @id @default(uuid())
+  entryId       String
+  entry         WaitlistEntry       @relation(fields: [entryId], references: [id])
+  slotId        String
+  slot          Slot                @relation(fields: [slotId], references: [id])
+  status        WaitlistOfferStatus @default(PENDING)
+  offeredAt     DateTime            @default(now())
+  expiresAt     DateTime
+  respondedAt   DateTime?
+  appointmentId String?             @unique // the booking made by claiming it
+
+  // A person is offered a given slot at most once (so at most one offer SMS).
+  @@unique([entryId, slotId])
+  @@index([status, expiresAt])
 }

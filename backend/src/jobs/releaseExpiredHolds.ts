@@ -1,4 +1,5 @@
 import { prisma } from "../lib/prisma";
+import { announceOffer, expireOffers, releaseSlot } from "../lib/waitlist";
 
 const HOLD_MINUTES = 10;
 /** cancelReason of a hold that expired unpaid; only these may be revived by a late payment. */
@@ -17,6 +18,7 @@ export async function releaseExpiredHolds(): Promise<number> {
 
   let released = 0;
   for (const appointment of expired) {
+    let offer: string | null = null;
     await prisma.$transaction(async (tx) => {
       // Conditional: if the payment webhook confirmed this booking a moment
       // ago, the status is no longer PENDING_PAYMENT and nothing is released.
@@ -25,10 +27,11 @@ export async function releaseExpiredHolds(): Promise<number> {
         data: { status: "CANCELLED", cancelledAt: new Date(), cancelReason: HOLD_EXPIRED_REASON },
       });
       if (cancelled.count === 1) {
-        await tx.slot.update({ where: { id: appointment.slotId }, data: { isBooked: false } });
+        offer = await releaseSlot(tx, appointment.slotId); // waitlist first, else open
         released += 1;
       }
     });
+    await announceOffer(offer);
   }
 
   return released;
@@ -37,5 +40,6 @@ export async function releaseExpiredHolds(): Promise<number> {
 export function startSlotHoldExpiryJob(intervalMs = 60_000): NodeJS.Timeout {
   return setInterval(() => {
     releaseExpiredHolds().catch((err) => console.error("releaseExpiredHolds failed", err));
+    expireOffers().catch((err) => console.error("waitlist offer expiry failed", err));
   }, intervalMs);
 }

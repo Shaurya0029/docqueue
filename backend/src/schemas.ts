@@ -180,3 +180,14 @@ export const auditLogQuerySchema = z.object({
   from: z.string().optional(),
   to: z.string().optional(),
 });
+
+export const joinWaitlistSchema = z.object({
+  doctorId: z.string().uuid(),
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use the format yyyy-mm-dd"),
+  /** A family member's patient id; omitted for the account holder. */
+  patientId: z.string().uuid().optional(),
+});
+
+export const waitlistCountQuerySchema = z.object({
+  date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+});

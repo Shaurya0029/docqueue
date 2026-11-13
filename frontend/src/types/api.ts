@@ -189,3 +189,17 @@ export interface AdminOverviewRow {
   noShowRate: number;
   revenue: number;
 }
+
+/** A live waitlist entry of the account holder or a family member. */
+export interface WaitlistEntry {
+  id: string;
+  date: string;
+  status: "WAITING" | "OFFERED";
+  joinedAt: string;
+  /** 1 = first in line. */
+  position: number;
+  doctor: { id: string; fullName: string; specialization: string };
+  patient: { id: string; fullName: string | null; accountHolderId: string | null };
+  /** A freed slot held for them: claim before expiresAt, then pay as usual. */
+  offer: { id: string; slotStartsAt: string; expiresAt: string } | null;
+}

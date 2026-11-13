@@ -8,6 +8,7 @@ import { writeAuditLog } from "./audit";
 import { assertDoctorBookable } from "./bookable";
 import { isRefundableByPolicy, issueRefund, REFUND_CUTOFF_HOURS, type RefundResult } from "./refunds";
 import { ownedByAccount } from "./family";
+import { announceOffer, releaseSlot } from "./waitlist";
 
 /**
  * Cancels a booking that has not started yet (awaiting payment or booked).
@@ -29,6 +30,7 @@ export async function cancelAppointment(params: {
     include: { slot: true, payment: true },
   });
 
+  let offer: string | null = null;
   const cancelled = await prisma.$transaction(async (tx) => {
     const res = await tx.appointment.updateMany({
       where: { id: appointment.id, status: { in: ["PENDING_PAYMENT", "BOOKED"] } },
@@ -39,7 +41,8 @@ export async function cancelAppointment(params: {
       },
     });
     if (res.count === 0) return false;
-    await tx.slot.update({ where: { id: appointment.slotId }, data: { isBooked: false } });
+    // Offered to the next person on the waitlist, or opened for anyone.
+    offer = await releaseSlot(tx, appointment.slotId);
     return true;
   });
   if (!cancelled) throw new HttpError(409, `Cannot cancel an appointment that is ${appointment.status.toLowerCase().replace("_", " ")}`);
@@ -66,6 +69,7 @@ export async function cancelAppointment(params: {
         ? `The clinic has cancelled ${w.your} appointment on ${when}.${refundLine}`
         : `${w.Your} appointment on ${when} is cancelled.${refundLine}`,
   });
+  await announceOffer(offer);
   await publishQueueUpdate(appointment.doctorId, { type: "CANCELLED", appointmentId: appointment.id });
   await writeAuditLog({
     actorUserId: params.actorUserId,
@@ -102,13 +106,14 @@ export async function rescheduleAppointment(params: {
   if (params.newSlotId === appointment.slotId) throw new HttpError(400, "That is already your slot");
   await assertDoctorBookable(appointment.doctorId);
 
+  let offer: string | null = null;
   const result = await prisma.$transaction(async (tx) => {
     const claimed = await tx.slot.updateMany({
       where: { id: params.newSlotId, doctorId: appointment.doctorId, isBooked: false, startsAt: { gt: new Date() } },
       data: { isBooked: true },
     });
     if (claimed.count === 0) throw new HttpError(409, "That slot is no longer available");
-    await tx.slot.update({ where: { id: appointment.slotId }, data: { isBooked: false } });
+    offer = await releaseSlot(tx, appointment.slotId); // the old slot: waitlist first
 
     const slot = await tx.slot.findUniqueOrThrow({ where: { id: params.newSlotId } });
     const token = await tokenForSlot(tx, slot);
@@ -124,6 +129,7 @@ export async function rescheduleAppointment(params: {
     return { token, slot };
   });
 
+  await announceOffer(offer);
   await ensureClinicDay(appointment.doctorId, result.slot.slotDate);
   await publishQueueUpdate(appointment.doctorId, { type: "RESCHEDULED", appointmentId: appointment.id });
   await notifyPatient({

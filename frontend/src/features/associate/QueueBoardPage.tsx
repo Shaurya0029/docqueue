@@ -4,6 +4,8 @@ import { useQueueSocket } from "../../lib/useQueueSocket";
 import { useActiveDoctor } from "./ActiveDoctorContext";
 import { useCallNext, useDoctorQueue, useMarkComplete, useMarkNoShow, usePauseQueue } from "./hooks";
 import { useT } from "../../lib/i18n";
+import { WaitlistCount } from "../doctor/WaitlistCount";
+import { todayKey } from "../../lib/formatters";
 
 export function QueueBoardPage() {
   const t = useT();
@@ -23,7 +25,7 @@ export function QueueBoardPage() {
 
   return (
     <>
-      <PageHeader eyebrow={t("Front desk")} title={t("Today's queue")} />
+      <PageHeader eyebrow={t("Front desk")} title={t("Today's queue")} action={<WaitlistCount doctorId={doctorId} date={todayKey()} />} />
       <QueueBoard
         queue={queue}
         connected={connected}

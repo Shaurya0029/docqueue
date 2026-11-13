@@ -43,9 +43,12 @@ export function NoSlotsPanel({ doctorId, doctorName }: { doctorId: string; docto
             </div>
           </div>
         ) : (
-          <Button icon="bell" className="w-full" loading={setAlert.isPending || alert.isLoading} onClick={() => toggleAlert(true)}>
-            {t("Notify me when slots open")}
-          </Button>
+          <div className="space-y-1.5">
+            <Button icon="bell" className="w-full" loading={setAlert.isPending || alert.isLoading} onClick={() => toggleAlert(true)}>
+              {t("Notify me when slots open")}
+            </Button>
+            <p className="text-xs text-muted">{t("Only a text when the doctor adds new slots; nothing is held for you.")}</p>
+          </div>
         )}
         {!showAlternatives && (
           <Button variant="secondary" icon="users" className="w-full" onClick={() => setShowAlternatives(true)}>

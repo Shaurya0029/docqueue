@@ -6,6 +6,7 @@ import { formatDate, formatTime } from "../../lib/formatters";
 import type { AppointmentStatus } from "../../types/api";
 import { useMyAppointments } from "./hooks";
 import { useT } from "../../lib/i18n";
+import { WaitlistSection } from "./Waitlist";
 
 const ACTIVE: AppointmentStatus[] = ["PENDING_PAYMENT", "BOOKED", "CHECKED_IN", "IN_CONSULTATION"];
 
@@ -22,6 +23,7 @@ export function AppointmentsPage() {
   return (
     <div className="space-y-5">
       <PageHeader eyebrow={t("Bookings")} title={t("My appointments")} />
+      <WaitlistSection />
       <div className="max-w-md">
       <Segmented
         value={filter}

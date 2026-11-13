@@ -9,6 +9,7 @@ import type { Slot } from "../../types/api";
 import { useBookSlot, useDoctorProfile, useFamily } from "./hooks";
 import { useT } from "../../lib/i18n";
 import { NoSlotsPanel } from "./NoSlotsPanel";
+import { WaitlistPanel } from "./Waitlist";
 import { msg } from "../../lib/i18n";
 
 const PERIODS = [
@@ -105,7 +106,10 @@ export function DoctorProfilePage() {
       </div>
       <div className="min-w-0 space-y-5">
       {days.length === 0 ? (
-        <NoSlotsPanel doctorId={doctor.id} doctorName={doctor.fullName} />
+        <>
+          <WaitlistPanel doctorId={doctor.id} />
+          <NoSlotsPanel doctorId={doctor.id} doctorName={doctor.fullName} />
+        </>
       ) : (
         <Reveal delay={0.08}>
           <Section title={t("Choose a date")} icon="calendar">
@@ -178,6 +182,8 @@ export function DoctorProfilePage() {
           </Section>
         </Reveal>
       )}
+
+      {days.length > 0 && <WaitlistPanel doctorId={doctor.id} />}
 
       {/* Confirmation sheet */}
       <AnimatePresence>

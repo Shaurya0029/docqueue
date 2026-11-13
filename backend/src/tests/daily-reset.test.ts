@@ -63,7 +63,7 @@ describe("daily token reset", () => {
     const other = await createPatient();
     const { appointmentId: todayId } = await bookAndPay(app, other.token, todays.id);
 
-    expect(await closePastDays()).toEqual({ noShows: 1, daysClosed: 1 });
+    expect(await closePastDays()).toEqual({ noShows: 1, daysClosed: 1, waitlistsEnded: 0 });
     expect((await prisma.appointment.findUniqueOrThrow({ where: { id: appointmentId } })).status).toBe("NO_SHOW");
     expect((await prisma.appointment.findUniqueOrThrow({ where: { id: todayId } })).status).toBe("BOOKED"); // today untouched
 

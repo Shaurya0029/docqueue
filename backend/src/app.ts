@@ -10,6 +10,7 @@ import { qrRouter } from "./routes/qr";
 import { queueRouter } from "./routes/queue";
 import { doctorSettingsRouter } from "./routes/doctorSettings";
 import { adminRouter } from "./routes/admin";
+import { waitlistRouter } from "./routes/waitlist";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
 export function createApp() {
@@ -36,6 +37,7 @@ export function createApp() {
   app.use("/appointments/qr", qrRouter);
   app.use(doctorSettingsRouter); // /doctors/:id/slots, /slots/:id, /doctors/:id, /doctors/:id/earnings
   app.use(queueRouter); // /doctors/:id/queue, /appointments/doctor/:id/call-next, etc.
+  app.use(waitlistRouter); // /waitlist/..., /doctors/:id/waitlist
   app.use(adminRouter); // /clinics, /admin/overview, /admin/audit-log
 
   app.use(notFoundHandler);

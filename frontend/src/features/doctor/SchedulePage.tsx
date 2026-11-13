@@ -6,6 +6,7 @@ import { apiErrorMessage } from "../../lib/api";
 import type { Appointment } from "../../types/api";
 import { useCancelByClinic, useDoctorAppointments, useMyDoctorProfile, useRefundOverride } from "./hooks";
 import { useT } from "../../lib/i18n";
+import { WaitlistCount } from "./WaitlistCount";
 
 /** yyyy-mm-dd in local time, offset from today by `delta` days. */
 function dayKey(delta: number) {
@@ -113,6 +114,8 @@ export function SchedulePage() {
           </label>
         }
       />
+
+      <WaitlistCount doctorId={doctorId} date={date} />
 
       <div className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 lg:mx-0 lg:grid lg:grid-cols-7 lg:px-0">
         {week.map((key) => {

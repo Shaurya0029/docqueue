@@ -37,6 +37,10 @@ const DOCS: Record<"privacy" | "terms", Doc> = {
         body: msg("For a family member under 18 you act as their parent or legal guardian and give consent on their behalf; we record that you did and when. We collect no tracking or behavioural data about children: a child's visit never uses location (leave-now alerts take only the travel time you type), and their data is never used for profiling or advertising."),
       },
       {
+        heading: msg("Waitlist"),
+        body: msg("If you join a waitlist for a fully booked day, we keep who it is for, the doctor, the day, when you joined, and any slot offered to you and what happened to it. The clinic sees only how many people are waiting, never who. Each offered slot is texted to your phone once. You can leave at any time; entries end when the day passes, are included in your data download, and are erased if you delete your account or that family member."),
+      },
+      {
         heading: msg("Your phone number and the clinic"),
         body: msg("The doctor and front desk of the clinic you book with can see the phone number on your booking (yours, including as the contact for a family member you book for) so they can reach you about the visit. Every time clinic staff view these numbers it is recorded in an audit log."),
       },

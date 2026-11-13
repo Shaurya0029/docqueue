@@ -1,5 +1,6 @@
 import { prisma } from "../lib/prisma";
 import { todayKey } from "../lib/dates";
+import { expirePastEntries } from "../lib/waitlist";
 
 /**
  * Closes every queue day before today (IST):
@@ -12,7 +13,7 @@ import { todayKey } from "../lib/dates";
  * Tokens need no reset: a token is the slot's position within its own day,
  * so every day starts again at 1 by construction.
  */
-export async function closePastDays(): Promise<{ noShows: number; daysClosed: number }> {
+export async function closePastDays(): Promise<{ noShows: number; daysClosed: number; waitlistsEnded: number }> {
   const today = todayKey();
   const noShows = await prisma.appointment.updateMany({
     where: { status: "BOOKED", queueDate: { lt: today } },
@@ -22,7 +23,9 @@ export async function closePastDays(): Promise<{ noShows: number; daysClosed: nu
     where: { date: { lt: today }, status: { not: "CLOSED" } },
     data: { status: "CLOSED" },
   });
-  return { noShows: noShows.count, daysClosed: daysClosed.count };
+  // Waitlists for past days end on their own.
+  const waitlistsEnded = await expirePastEntries(today);
+  return { noShows: noShows.count, daysClosed: daysClosed.count, waitlistsEnded };
 }
 
 export function startCloseDaysJob(intervalMs = 15 * 60_000): NodeJS.Timeout {
