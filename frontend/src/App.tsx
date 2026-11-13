@@ -17,6 +17,7 @@ import { WalkInPage } from "./features/associate/WalkInPage";
 import { AppointmentsPage } from "./features/patient/AppointmentsPage";
 import { ProfilePage } from "./features/patient/ProfilePage";
 import { FamilyPage } from "./features/patient/FamilyPage";
+import { DisplayBoardPage } from "./features/display/DisplayBoardPage";
 
 import { AssociateLayout } from "./features/associate/AssociateLayout";
 import { ScannerPage } from "./features/associate/ScannerPage";
@@ -52,6 +53,8 @@ function AppRoutes() {
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/privacy" element={<LegalPage doc="privacy" />} />
+      {/* Waiting-room TV: public, no login, the link token is the only key. */}
+      <Route path="/display/:token" element={<DisplayBoardPage />} />
       <Route path="/terms" element={<LegalPage doc="terms" />} />
       <Route path="/" element={<RootRedirect />} />
 

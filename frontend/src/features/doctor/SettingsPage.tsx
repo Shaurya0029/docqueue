@@ -3,6 +3,7 @@ import { Alert, Button, ErrorState, Field, Input, PageHeader, Section, Spinner, 
 import { apiErrorMessage } from "../../lib/api";
 import { useConsultAverage, useDoctorProfileFull, useMyDoctorProfile, useUpdateDoctorSettings } from "./hooks";
 import { useT } from "../../lib/i18n";
+import { DisplayLinkManager } from "./DisplayLinkManager";
 
 export function SettingsPage() {
   const t = useT();
@@ -108,6 +109,12 @@ export function SettingsPage() {
           </Button>
         </div>
       </Section>
+
+      {doctorId && (
+        <Section title={t("Waiting-room display")} icon="monitor">
+          <DisplayLinkManager doctorId={doctorId} />
+        </Section>
+      )}
 
       <Section title={t("Consultation details")} icon="stethoscope">
         <form

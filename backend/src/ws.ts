@@ -7,36 +7,113 @@ import { redisSub, queueChannel } from "./lib/redis";
 import { assertDoctorAccess } from "./lib/scope";
 import { isRevoked } from "./lib/revocation";
 import { ownedByAccount } from "./lib/family";
+import { DISPLAY_REVOKED_CHANNEL, boardSnapshot, findLiveLink, logSafe } from "./lib/displayLinks";
+import { withinLimit } from "./lib/otp";
+import { pickBoard, DISPLAY_REQUESTS_PER_MINUTE } from "./routes/display";
 
+/** Signed-in sockets (staff, patients): they get the doctor's queue events as published. */
 const channelSockets = new Map<string, Set<WebSocket>>();
 
+/**
+ * Waiting-room board sockets (no login, a display link). They never see the
+ * raw queue events (those carry appointment ids): on any event for their
+ * doctor they get a freshly built, whitelisted board instead.
+ */
+interface BoardSocket {
+  socket: WebSocket;
+  linkId: string;
+}
+const boardSockets = new Map<string, Set<BoardSocket>>(); // channel -> boards
+
+redisSub.subscribe(DISPLAY_REVOKED_CHANNEL).catch((err) => console.error("redis subscribe failed", err));
+
 redisSub.on("message", (channel: string, message: string) => {
-  const sockets = channelSockets.get(channel);
-  if (!sockets) return;
-  for (const socket of sockets) {
+  if (channel === DISPLAY_REVOKED_CHANNEL) {
+    // A link was regenerated or revoked: its boards go dark at once, on every API instance.
+    for (const boards of boardSockets.values()) {
+      for (const b of boards) if (b.linkId === message) b.socket.close(4004, "Not found");
+    }
+    return;
+  }
+  for (const socket of channelSockets.get(channel) ?? []) {
     if (socket.readyState === WebSocket.OPEN) socket.send(message);
   }
+  const boards = boardSockets.get(channel);
+  if (boards && boards.size > 0) {
+    const doctorId = channel.slice(queueChannel("").length);
+    boardSnapshot(doctorId)
+      .then((board) => {
+        const payload = JSON.stringify({ type: "BOARD", board: pickBoard(board) });
+        for (const b of boards) if (b.socket.readyState === WebSocket.OPEN) b.socket.send(payload);
+      })
+      .catch((err) => console.error("board update failed", err instanceof Error ? err.message : err));
+  }
 });
+
+function listeners(channel: string): number {
+  return (channelSockets.get(channel)?.size ?? 0) + (boardSockets.get(channel)?.size ?? 0);
+}
+
+function ensureRedis(channel: string): void {
+  if (listeners(channel) === 1) redisSub.subscribe(channel).catch((err) => console.error("redis subscribe failed", err));
+}
+
+function releaseRedis(channel: string): void {
+  if (listeners(channel) === 0) {
+    channelSockets.delete(channel);
+    boardSockets.delete(channel);
+    redisSub.unsubscribe(channel).catch((err) => console.error("redis unsubscribe failed", err));
+  }
+}
 
 function subscribe(doctorId: string, socket: WebSocket): void {
   const channel = queueChannel(doctorId);
   let sockets = channelSockets.get(channel);
-  if (!sockets) {
-    sockets = new Set();
-    channelSockets.set(channel, sockets);
-    redisSub.subscribe(channel).catch((err) => console.error("redis subscribe failed", err));
-  }
+  if (!sockets) channelSockets.set(channel, (sockets = new Set()));
   sockets.add(socket);
+  ensureRedis(channel);
 }
 
 function unsubscribe(doctorId: string, socket: WebSocket): void {
   const channel = queueChannel(doctorId);
-  const sockets = channelSockets.get(channel);
-  if (!sockets) return;
-  sockets.delete(socket);
-  if (sockets.size === 0) {
-    channelSockets.delete(channel);
-    redisSub.unsubscribe(channel).catch((err) => console.error("redis unsubscribe failed", err));
+  channelSockets.get(channel)?.delete(socket);
+  releaseRedis(channel);
+}
+
+function subscribeBoard(doctorId: string, board: BoardSocket): void {
+  const channel = queueChannel(doctorId);
+  let boards = boardSockets.get(channel);
+  if (!boards) boardSockets.set(channel, (boards = new Set()));
+  boards.add(board);
+  ensureRedis(channel);
+}
+
+function unsubscribeBoard(doctorId: string, board: BoardSocket): void {
+  const channel = queueChannel(doctorId);
+  boardSockets.get(channel)?.delete(board);
+  releaseRedis(channel);
+}
+
+/** A board connects with ?display=<token>: scoped to that link's one doctor, nothing else. */
+async function connectBoard(socket: WebSocket, token: string, ip: string): Promise<void> {
+  if (!(await withinLimit(`display:rate:${ip}`, DISPLAY_REQUESTS_PER_MINUTE, 60))) {
+    socket.close(4029, "Too many requests");
+    return;
+  }
+  const link = await findLiveLink(token);
+  if (!link) {
+    socket.close(4004, "Not found");
+    return;
+  }
+  if (socket.readyState !== WebSocket.OPEN) return; // the TV went away during the lookup
+  const board: BoardSocket = { socket, linkId: link.id };
+  subscribeBoard(link.doctorId, board);
+  socket.on("close", () => unsubscribeBoard(link.doctorId, board));
+  try {
+    socket.send(JSON.stringify({ type: "BOARD", board: pickBoard(await boardSnapshot(link.doctorId)) }));
+  } catch (err) {
+    console.error(`display socket ${logSafe(token)} failed`, err instanceof Error ? err.message : err);
+    socket.close(1011, "Error");
   }
 }
 
@@ -72,6 +149,11 @@ export function attachWebSocketServer(httpServer: HttpServer): void {
 
   wss.on("connection", async (socket, request) => {
     const url = new URL(request.url ?? "", "http://localhost");
+    const display = url.searchParams.get("display");
+    if (display !== null) {
+      await connectBoard(socket, display, request.socket.remoteAddress ?? "unknown");
+      return;
+    }
     const token = url.searchParams.get("token");
     const requestedDoctorId = url.searchParams.get("doctorId");
 

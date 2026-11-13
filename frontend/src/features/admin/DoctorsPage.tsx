@@ -4,6 +4,7 @@ import { apiErrorMessage } from "../../lib/api";
 import { formatRupees } from "../../lib/formatters";
 import { useClinics, useCreateDoctor, useDeactivateUser, useDoctorsForClinic, useVerifyDoctor, type AdminDoctorRow } from "./hooks";
 import { useT } from "../../lib/i18n";
+import { DisplayLinkManager } from "../doctor/DisplayLinkManager";
 
 const VERIFICATION_STYLE = {
   APPROVED: "bg-success-soft text-success",
@@ -201,6 +202,12 @@ export function DoctorsPage() {
                 </p>
               </div>
               <VerificationPanel doctor={doctor} clinicId={clinicId} />
+              <details className="w-full rounded-2xl bg-slate-50 p-3 ring-1 ring-slate-200 order-last">
+                <summary className="cursor-pointer text-sm font-semibold text-brand-700">{t("Waiting-room TV link")}</summary>
+                <div className="mt-3">
+                  <DisplayLinkManager doctorId={doctor.id} />
+                </div>
+              </details>
               <div className="flex items-center gap-2 max-sm:w-full max-sm:justify-end">
               <span
                 className={`rounded-full px-2.5 py-1 text-xs font-bold ${doctor.isActive ? "bg-success-soft text-success" : "bg-slate-100 text-slate-500"}`}

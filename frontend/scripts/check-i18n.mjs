@@ -18,7 +18,7 @@ const src = join(root, "src");
 
 // Everything a patient can see: their portal, login, legal pages, and the
 // shared components and helpers those screens render.
-const PATIENT_SCOPE = ["features/patient", "features/auth", "features/legal", "components", "lib", "app", "App.tsx"];
+const PATIENT_SCOPE = ["features/patient", "features/auth", "features/legal", "features/display", "components", "lib", "app", "App.tsx"];
 const STAFF_SCOPE = ["features/doctor", "features/associate", "features/admin"];
 
 function files(rel) {

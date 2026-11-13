@@ -222,6 +222,7 @@ model Doctor {
   associateLinks AssociateDoctor[]
   slotAlerts     SlotAlert[]
   waitlistEntries WaitlistEntry[]
+  displayLinks   DisplayLink[]
 }
 
 model Associate {
@@ -418,4 +419,24 @@ model WaitlistOffer {
   // A person is offered a given slot at most once (so at most one offer SMS).
   @@unique([entryId, slotId])
   @@index([status, expiresAt])
+}
+
+// Waiting-room TV link for one doctor's "now serving" board (no login).
+// The token is 256 random bits; only its SHA-256 (for lookup) and an
+// AES-GCM-encrypted copy (so staff can view the link again) are stored.
+// Regenerating revokes the old row and creates a new one.
+// Hand-written partial unique index (migration *_display_links): one live
+// (unrevoked) link per doctor.
+model DisplayLink {
+  id              String    @id @default(uuid())
+  doctorId        String
+  doctor          Doctor    @relation(fields: [doctorId], references: [id])
+  tokenHash       String    @unique
+  tokenEncrypted  String
+  tokenPrefix     String // first 6 characters, for logs and the audit trail
+  createdByUserId String
+  createdAt       DateTime  @default(now())
+  revokedAt       DateTime?
+
+  @@index([doctorId])
 }
