@@ -55,8 +55,8 @@ describe("DPDP account deletion", () => {
     const after = await prisma.patient.findUniqueOrThrow({ where: { id: patient.patient.id }, include: { user: true } });
     expect(after).toMatchObject({ fullName: null, address: null, idDocumentRef: null, consentAt: null });
     expect(after.deletedAt).toBeInstanceOf(Date);
-    expect(after.user.phoneNumber).not.toBe(patient.user.phoneNumber);
-    expect(after.user.isActive).toBe(false);
+    expect(after.user!.phoneNumber).not.toBe(patient.user.phoneNumber);
+    expect(after.user!.isActive).toBe(false);
     expect(await prisma.notification.count({ where: { userId: patient.user.id } })).toBe(0);
     expect(await prisma.slotAlert.count({ where: { patientId: patient.patient.id } })).toBe(0);
 

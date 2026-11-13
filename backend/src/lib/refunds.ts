@@ -1,6 +1,6 @@
 import { prisma } from "./prisma";
 import { refundPayment } from "./payments";
-import { sendNotification } from "./notifications";
+import { notifyPatient } from "./notifications";
 import { writeAuditLog } from "./audit";
 
 /** Cancel this many hours or more before the slot for a full refund. */
@@ -24,7 +24,7 @@ export async function issueRefund(params: { paymentId: string; actorUserId: stri
 
   const payment = await prisma.payment.findUniqueOrThrow({
     where: { id: params.paymentId },
-    include: { appointment: { include: { patient: true } } },
+    include: { appointment: { select: { patientId: true } } },
   });
   let status: "PROCESSED" | "FAILED" = "PROCESSED";
   let refundRef: string | null = null;
@@ -48,12 +48,13 @@ export async function issueRefund(params: { paymentId: string; actorUserId: stri
   });
 
   if (status === "PROCESSED") {
-    await sendNotification({
-      userId: payment.appointment.patient.userId,
+    await notifyPatient({
+      patientId: payment.appointment.patientId,
       type: "REFUND_ISSUED",
-      message: atDesk
-        ? `A refund of Rs ${payment.amount} is ready for you at the clinic desk.`
-        : `A refund of Rs ${payment.amount} has been issued to your original payment method. It usually arrives in 5-7 working days.`,
+      message: (w) =>
+        atDesk
+          ? `A refund of Rs ${payment.amount}${w.forName} is ready for you at the clinic desk.`
+          : `A refund of Rs ${payment.amount}${w.forName} has been issued to your original payment method. It usually arrives in 5-7 working days.`,
     });
   }
   await writeAuditLog({

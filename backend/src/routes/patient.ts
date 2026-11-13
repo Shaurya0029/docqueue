@@ -2,9 +2,10 @@ import { Router } from "express";
 import { prisma } from "../lib/prisma";
 import { asyncHandler, HttpError } from "../middleware/errorHandler";
 import { requireAuth, requireRole } from "../middleware/auth";
-import { patientUpdateSchema } from "../schemas";
+import { familyMemberSchema, patientUpdateSchema } from "../schemas";
 import { writeAuditLog } from "../lib/audit";
-import { deletePatientAccount, exportPatientData } from "../lib/patientData";
+import { deleteFamilyMember, deletePatientAccount, exportPatientData } from "../lib/patientData";
+import { addFamilyMember, listFamily, updateFamilyMember } from "../lib/family";
 
 export const patientRouter = Router();
 
@@ -62,6 +63,54 @@ patientRouter.post(
       throw new HttpError(400, 'Send { "confirm": "DELETE" } to delete your account');
     }
     const result = await deletePatientAccount(req.auth!.profileId, req.auth!.userId);
+    res.json({ ok: true, ...result });
+  })
+);
+
+/**
+ * Family profiles: the account holder adds, changes and removes the family
+ * members they book for. Every route is scoped to the holder in the login
+ * token; another account's member is a 404.
+ */
+patientRouter.get(
+  "/family",
+  requireAuth,
+  requireRole("PATIENT"),
+  asyncHandler(async (req, res) => {
+    res.json({ members: await listFamily(req.auth!.profileId) });
+  })
+);
+
+patientRouter.post(
+  "/family",
+  requireAuth,
+  requireRole("PATIENT"),
+  asyncHandler(async (req, res) => {
+    const { consent: _consent, ...input } = familyMemberSchema.parse(req.body);
+    res.status(201).json({ member: await addFamilyMember(req.auth!.profileId, req.auth!.userId, input) });
+  })
+);
+
+patientRouter.put(
+  "/family/:id",
+  requireAuth,
+  requireRole("PATIENT"),
+  asyncHandler(async (req, res) => {
+    const { consent: _consent, ...input } = familyMemberSchema.parse(req.body);
+    res.json({ member: await updateFamilyMember(req.auth!.profileId, req.auth!.userId, req.params.id, input) });
+  })
+);
+
+/** DPDP: erase one family member's data. The body must be { "confirm": "DELETE" }. */
+patientRouter.post(
+  "/family/:id/delete",
+  requireAuth,
+  requireRole("PATIENT"),
+  asyncHandler(async (req, res) => {
+    if ((req.body as { confirm?: string })?.confirm !== "DELETE") {
+      throw new HttpError(400, 'Send { "confirm": "DELETE" } to remove this family member');
+    }
+    const result = await deleteFamilyMember(req.auth!.profileId, req.params.id, req.auth!.userId);
     res.json({ ok: true, ...result });
   })
 );

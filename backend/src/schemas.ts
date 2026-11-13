@@ -31,7 +31,27 @@ export const patientUpdateSchema = z.object({
 
 export const bookAppointmentSchema = z.object({
   slotId: z.string().uuid(),
+  /** A family member's patient id; omitted (or the holder's own id) books for the account holder. */
+  patientId: z.string().uuid().optional(),
 });
+
+const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Use the format yyyy-mm-dd")
+  .refine((v) => !Number.isNaN(Date.parse(`${v}T00:00:00Z`)) && v <= new Date().toISOString().slice(0, 10) && v >= "1900-01-01", {
+    message: "Enter a real date of birth, not in the future",
+  });
+
+/** A family member, added or changed by the account holder, who consents each time. */
+export const familyMemberSchema = z
+  .object({
+    fullName: z.string().trim().min(2, "Enter the family member's name").max(80),
+    relationship: z.enum(["PARENT", "CHILD", "SPOUSE", "OTHER"]),
+    dateOfBirth: isoDate.nullable().optional(),
+    ageYears: z.number().int().min(0).max(120).nullable().optional(),
+    consent: z.literal(true, { errorMap: () => ({ message: "Consent is required to add a family member" }) }),
+  })
+  .strict();
 
 export const createOrderSchema = z.object({
   appointmentId: z.string().uuid(),

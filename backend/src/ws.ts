@@ -6,6 +6,7 @@ import { prisma } from "./lib/prisma";
 import { redisSub, queueChannel } from "./lib/redis";
 import { assertDoctorAccess } from "./lib/scope";
 import { isRevoked } from "./lib/revocation";
+import { ownedByAccount } from "./lib/family";
 
 const channelSockets = new Map<string, Set<WebSocket>>();
 
@@ -54,8 +55,8 @@ async function resolveAllowedDoctorId(
 
   if (auth.role === "PATIENT") {
     const appointment = await prisma.appointment.findFirst({
-      // Only while the patient has a live booking with this doctor.
-      where: { patientId: auth.profileId, doctorId: requestedDoctorId, status: { in: ["BOOKED", "CHECKED_IN", "IN_CONSULTATION"] } },
+      // Only while the patient (or a family member they manage) has a live booking with this doctor.
+      where: { ...ownedByAccount(auth.profileId), doctorId: requestedDoctorId, status: { in: ["BOOKED", "CHECKED_IN", "IN_CONSULTATION"] } },
     });
     if (!appointment) throw new Error("No appointment with this doctor");
     return requestedDoctorId;

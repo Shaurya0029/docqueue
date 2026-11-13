@@ -3,6 +3,7 @@ import { prisma } from "./prisma";
 import { getSmsProvider } from "./sms";
 import { formatIst, todayKey } from "./dates";
 import { getNowServing } from "./queueService";
+import { accountUserId, contactSelect, whoFor, type Who } from "./family";
 
 /**
  * Sends a patient notification by SMS and logs it in the Notification table.
@@ -16,6 +17,8 @@ import { getNowServing } from "./queueService";
  */
 export async function sendNotification(params: {
   userId: string;
+  /** The patient the message is about, when there is one (see notifyPatient). */
+  patientId?: string;
   type: NotificationType;
   message: string;
   dedupeKey?: string;
@@ -25,6 +28,7 @@ export async function sendNotification(params: {
     const row = await prisma.notification.create({
       data: {
         userId: params.userId,
+        patientId: params.patientId ?? null,
         type: params.type,
         channel: "SMS",
         status: "PENDING",
@@ -52,6 +56,26 @@ export async function sendNotification(params: {
   return true;
 }
 
+/**
+ * Texts about a patient. A family member has no phone of their own, so the
+ * message goes to their account holder and names them ("Reminder for Asha").
+ */
+export async function notifyPatient(params: {
+  patientId: string;
+  type: NotificationType;
+  message: (who: Who) => string;
+  dedupeKey?: string;
+}): Promise<boolean> {
+  const patient = await prisma.patient.findUniqueOrThrow({ where: { id: params.patientId }, select: contactSelect });
+  return sendNotification({
+    userId: accountUserId(patient),
+    patientId: patient.id,
+    type: params.type,
+    dedupeKey: params.dedupeKey,
+    message: params.message(whoFor(patient)),
+  });
+}
+
 export const REMINDER_MINUTES_BEFORE = 60;
 
 /**
@@ -63,16 +87,17 @@ export async function sendDueReminders(now = new Date()): Promise<number> {
   const horizon = new Date(now.getTime() + REMINDER_MINUTES_BEFORE * 60_000);
   const due = await prisma.appointment.findMany({
     where: { status: "BOOKED", slot: { startsAt: { gt: now, lte: horizon } } },
-    include: { slot: true, patient: true, doctor: { include: { clinic: true } } },
+    include: { slot: true, doctor: { include: { clinic: true } } },
   });
   let sent = 0;
   for (const a of due) {
     if (a.slot.startsAt.getTime() - a.createdAt.getTime() < REMINDER_MINUTES_BEFORE * 60_000) continue;
-    const ok = await sendNotification({
-      userId: a.patient.userId,
+    const ok = await notifyPatient({
+      patientId: a.patientId,
       type: "REMINDER",
       dedupeKey: `reminder:${a.id}`,
-      message: `Reminder: your appointment with ${a.doctor.fullName} is at ${formatIst(a.slot.startsAt)}, ${a.doctor.clinic.name}. Your token is ${a.queueToken}. Show the QR on your ticket at the desk.`,
+      message: (w) =>
+        `Reminder${w.forName}: ${w.your} appointment with ${a.doctor.fullName} is at ${formatIst(a.slot.startsAt)}, ${a.doctor.clinic.name}. ${w.Your} token is ${a.queueToken}. Show the QR on ${w.your} ticket at the desk.`,
     });
     if (ok) sent += 1;
   }
@@ -92,15 +117,14 @@ export async function notifyThirdInLine(doctorId: string): Promise<void> {
     where: { doctorId, queueDate: date, status: { in: ["BOOKED", "CHECKED_IN"] }, queueToken: { gt: nowServing } },
     orderBy: { queueToken: "asc" },
     take: 3,
-    include: { patient: true },
   });
   const third = waiting[2];
   if (!third) return;
-  await sendNotification({
-    userId: third.patient.userId,
+  await notifyPatient({
+    patientId: third.patientId,
     type: "QUEUE_UPDATE",
     dedupeKey: `third-in-line:${third.id}`,
-    message: `You are 3rd in line (token ${third.queueToken}). Please be at the clinic; your turn is coming up soon.`,
+    message: (w) => `${w.youAre} 3rd in line (token ${third.queueToken}). Please be at the clinic; ${w.your} turn is coming up soon.`,
   });
 }
 

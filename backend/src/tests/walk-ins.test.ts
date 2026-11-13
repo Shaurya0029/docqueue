@@ -29,9 +29,9 @@ describe("walk-ins", () => {
     expect(appointment).toMatchObject({ status: "CHECKED_IN", isWalkIn: true, slotId: s2.id, queueToken: res.body.token });
     expect(appointment.payment).toMatchObject({ method: "DESK", status: "PAID", amount: 400 });
     expect(appointment.patient).toMatchObject({ fullName: "Lakshmi Devi", consentSource: "desk" });
-    expect(appointment.patient.user.phoneNumber).toBe("+919845012345");
+    expect(appointment.patient.user!.phoneNumber).toBe("+919845012345");
 
-    const sms = await prisma.notification.findFirstOrThrow({ where: { userId: appointment.patient.userId } });
+    const sms = await prisma.notification.findFirstOrThrow({ where: { userId: appointment.patient.userId! } });
     expect(sms.payload).toContain(`Your token is ${res.body.token}`);
     expect(await prisma.auditLog.count({ where: { action: "WALK_IN_ADDED" } })).toBe(1);
 
@@ -43,13 +43,13 @@ describe("walk-ins", () => {
     await createSlotSoon(doctor.id, 20);
     const existing = await createPatient();
 
-    const first = await walkIn(associateToken, doctor.id, { fullName: "Someone Else", phoneNumber: existing.user.phoneNumber, feeCollected: false });
+    const first = await walkIn(associateToken, doctor.id, { fullName: "test  patient", phoneNumber: existing.user.phoneNumber, feeCollected: false });
     expect(first.status).toBe(201);
     const appt = await prisma.appointment.findUniqueOrThrow({ where: { id: first.body.appointmentId }, include: { payment: true } });
-    expect(appt.patientId).toBe(existing.patient.id);
+    expect(appt.patientId).toBe(existing.patient.id); // same name (case and spacing aside): the account holder
     expect(appt.payment).toBeNull();
 
-    const again = await walkIn(associateToken, doctor.id, { fullName: "Someone Else", phoneNumber: existing.user.phoneNumber });
+    const again = await walkIn(associateToken, doctor.id, { fullName: "Test Patient", phoneNumber: existing.user.phoneNumber });
     expect(again.status).toBe(409);
 
     const staff = await prisma.user.findFirstOrThrow({ where: { role: "DOCTOR" } });

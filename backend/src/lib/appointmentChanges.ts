@@ -3,10 +3,11 @@ import { HttpError } from "../middleware/errorHandler";
 import { formatIst } from "./dates";
 import { tokenForSlot, ensureClinicDay, publishQueueUpdate } from "./queueService";
 import { generateShortCode, signQrToken } from "./qr";
-import { sendNotification } from "./notifications";
+import { notifyPatient } from "./notifications";
 import { writeAuditLog } from "./audit";
 import { assertDoctorBookable } from "./bookable";
 import { isRefundableByPolicy, issueRefund, REFUND_CUTOFF_HOURS, type RefundResult } from "./refunds";
+import { ownedByAccount } from "./family";
 
 /**
  * Cancels a booking that has not started yet (awaiting payment or booked).
@@ -25,7 +26,7 @@ export async function cancelAppointment(params: {
 }): Promise<{ refund: RefundResult | "NOT_ELIGIBLE" }> {
   const appointment = await prisma.appointment.findUniqueOrThrow({
     where: { id: params.appointmentId },
-    include: { slot: true, payment: true, patient: true },
+    include: { slot: true, payment: true },
   });
 
   const cancelled = await prisma.$transaction(async (tx) => {
@@ -57,13 +58,13 @@ export async function cancelAppointment(params: {
       : refund === "NOT_ELIGIBLE" ? ` It was cancelled less than ${REFUND_CUTOFF_HOURS} hours before the slot, so no refund applies.`
         : refund === "FAILED" ? " Your refund is being processed; the clinic will follow up."
           : "";
-  await sendNotification({
-    userId: appointment.patient.userId,
+  await notifyPatient({
+    patientId: appointment.patientId,
     type: "CANCELLED",
-    message:
+    message: (w) =>
       params.by === "clinic"
-        ? `The clinic has cancelled your appointment on ${when}.${refundLine}`
-        : `Your appointment on ${when} is cancelled.${refundLine}`,
+        ? `The clinic has cancelled ${w.your} appointment on ${when}.${refundLine}`
+        : `${w.Your} appointment on ${when} is cancelled.${refundLine}`,
   });
   await publishQueueUpdate(appointment.doctorId, { type: "CANCELLED", appointmentId: appointment.id });
   await writeAuditLog({
@@ -88,11 +89,12 @@ export async function rescheduleAppointment(params: {
   actorUserId: string;
   newSlotId: string;
 }): Promise<{ token: number }> {
-  const appointment = await prisma.appointment.findUnique({
-    where: { id: params.appointmentId },
-    include: { slot: true, patient: true },
+  // The account holder's own booking or a family member's.
+  const appointment = await prisma.appointment.findFirst({
+    where: { id: params.appointmentId, ...ownedByAccount(params.patientProfileId) },
+    include: { slot: true },
   });
-  if (!appointment || appointment.patientId !== params.patientProfileId) throw new HttpError(404, "Appointment not found");
+  if (!appointment) throw new HttpError(404, "Appointment not found");
   if (appointment.status !== "BOOKED") throw new HttpError(409, "Only a booked appointment can be rescheduled");
   if (!isRefundableByPolicy(appointment.slot.startsAt)) {
     throw new HttpError(409, `Appointments can be rescheduled up to ${REFUND_CUTOFF_HOURS} hours before the slot`);
@@ -124,10 +126,11 @@ export async function rescheduleAppointment(params: {
 
   await ensureClinicDay(appointment.doctorId, result.slot.slotDate);
   await publishQueueUpdate(appointment.doctorId, { type: "RESCHEDULED", appointmentId: appointment.id });
-  await sendNotification({
-    userId: appointment.patient.userId,
+  await notifyPatient({
+    patientId: appointment.patientId,
     type: "BOOKING_CONFIRMED",
-    message: `Your appointment has moved to ${formatIst(result.slot.startsAt)}. Your new token is ${result.token}; use the new QR on your ticket.`,
+    message: (w) =>
+      `${w.Your} appointment has moved to ${formatIst(result.slot.startsAt)}. ${w.Your} new token is ${result.token}; use the new QR on ${w.your} ticket.`,
   });
   await writeAuditLog({
     actorUserId: params.actorUserId,

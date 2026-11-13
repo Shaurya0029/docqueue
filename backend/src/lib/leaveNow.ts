@@ -1,9 +1,11 @@
+import type { Prisma } from "@prisma/client";
 import { prisma } from "./prisma";
 import { HttpError } from "../middleware/errorHandler";
 import { todayKey } from "./dates";
 import { estimateWait } from "./waitTime";
 import { travelMinutes, type Point } from "./travel";
-import { sendNotification } from "./notifications";
+import { notifyPatient } from "./notifications";
+import { isMinor, ownedByAccount } from "./family";
 
 /**
  * "Leave now" alerts (opt-in, per appointment).
@@ -32,18 +34,31 @@ export function shouldLeaveNow(untilTurnMinutes: number, travel: number): boolea
 export interface LeaveAlertState {
   /** The clinic has coordinates, so the feature is offered. */
   available: boolean;
+  /**
+   * Whether the trip may be estimated from the device's location. Not for
+   * children's visits: no location is collected for under-18s, so their
+   * account holder types the travel time instead.
+   */
+  locationAllowed: boolean;
   enabled: boolean;
   travelMinutes: number | null;
   source: "estimate" | "manual" | null;
   sentAt: Date | null;
 }
 
-async function ownAppointment(appointmentId: string, patientProfileId: string) {
-  const appointment = await prisma.appointment.findUnique({
-    where: { id: appointmentId },
-    include: { doctor: { include: { clinic: true } } },
+/** What leaveAlertState needs: the clinic's location and whether the patient is a minor. */
+export const leaveAlertInclude = {
+  doctor: { include: { clinic: true } },
+  patient: { select: { id: true, fullName: true, dateOfBirth: true, ageYears: true, ageRecordedOn: true, relationship: true, accountHolderId: true } },
+} satisfies Prisma.AppointmentInclude;
+
+/** The account holder's own appointment or a family member's; 404 otherwise. */
+async function ownAppointment(appointmentId: string, holderId: string) {
+  const appointment = await prisma.appointment.findFirst({
+    where: { id: appointmentId, ...ownedByAccount(holderId) },
+    include: leaveAlertInclude,
   });
-  if (!appointment || appointment.patientId !== patientProfileId) throw new HttpError(404, "Appointment not found");
+  if (!appointment) throw new HttpError(404, "Appointment not found");
   return appointment;
 }
 
@@ -57,9 +72,11 @@ export function leaveAlertState(appointment: {
   leaveAlertSource: string | null;
   leaveAlertSentAt: Date | null;
   doctor: { clinic: { latitude: number | null; longitude: number | null } };
+  patient: Parameters<typeof isMinor>[0];
 }): LeaveAlertState {
   return {
     available: clinicPoint(appointment.doctor.clinic) !== null,
+    locationAllowed: !isMinor(appointment.patient),
     enabled: appointment.leaveAlertOptedInAt !== null,
     travelMinutes: appointment.leaveAlertTravelMinutes,
     source: (appointment.leaveAlertSource as LeaveAlertState["source"]) ?? null,
@@ -88,6 +105,9 @@ export async function enableLeaveAlert(params: {
     minutes = params.manualMinutes;
     source = "manual";
   } else if (params.from) {
+    if (isMinor(appointment.patient)) {
+      throw new HttpError(409, "We don't use location for a child's visit. Enter the travel time instead.");
+    }
     minutes = (await travelMinutes(params.from, clinic)).minutes;
     source = "estimate";
   } else {
@@ -98,11 +118,11 @@ export async function enableLeaveAlert(params: {
   const updated = await prisma.appointment.update({
     where: { id: appointment.id },
     data: { leaveAlertOptedInAt: appointment.leaveAlertOptedInAt ?? new Date(), leaveAlertTravelMinutes: minutes, leaveAlertSource: source },
-    include: { doctor: { include: { clinic: true } } },
+    include: leaveAlertInclude,
   });
   // It may already be time to go.
   await evaluateLeaveAlerts({ appointmentIds: [appointment.id] });
-  const fresh = await prisma.appointment.findUniqueOrThrow({ where: { id: updated.id }, include: { doctor: { include: { clinic: true } } } });
+  const fresh = await prisma.appointment.findUniqueOrThrow({ where: { id: updated.id }, include: leaveAlertInclude });
   return leaveAlertState(fresh);
 }
 
@@ -111,7 +131,7 @@ export async function disableLeaveAlert(appointmentId: string, patientProfileId:
   const updated = await prisma.appointment.update({
     where: { id: appointmentId },
     data: { leaveAlertOptedInAt: null, leaveAlertTravelMinutes: null, leaveAlertSource: null },
-    include: { doctor: { include: { clinic: true } } },
+    include: leaveAlertInclude,
   });
   return leaveAlertState(updated);
 }
@@ -134,7 +154,7 @@ export async function evaluateLeaveAlerts(scope: { doctorId?: string; appointmen
       ...(scope.doctorId ? { doctorId: scope.doctorId } : {}),
       ...(scope.appointmentIds ? { id: { in: scope.appointmentIds } } : {}),
     },
-    include: { slot: true, patient: true, doctor: { include: { clinic: true } } },
+    include: { slot: true, doctor: { include: { clinic: true } } },
   });
   let sent = 0;
   for (const a of candidates) {
@@ -147,11 +167,12 @@ export async function evaluateLeaveAlerts(scope: { doctorId?: string; appointmen
       data: { leaveAlertSentAt: now },
     });
     if (claimed.count === 0) continue;
-    await sendNotification({
-      userId: a.patient.userId,
+    await notifyPatient({
+      patientId: a.patientId,
       type: "LEAVE_NOW",
       dedupeKey: `leave-now:${a.id}:${a.slotId}`,
-      message: `Time to leave for ${a.doctor.fullName} at ${a.doctor.clinic.name}: your turn is in about ${untilTurn} min and the trip takes about ${a.leaveAlertTravelMinutes} min. Token ${a.queueToken}.`,
+      message: (w) =>
+        `Time to leave${w.forName} for ${a.doctor.fullName} at ${a.doctor.clinic.name}: ${w.your} turn is in about ${untilTurn} min and the trip takes about ${a.leaveAlertTravelMinutes} min. Token ${a.queueToken}.`,
     });
     sent += 1;
   }

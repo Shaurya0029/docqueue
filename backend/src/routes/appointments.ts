@@ -9,6 +9,11 @@ import { assertDoctorAccess } from "../lib/scope";
 import { cancelAppointment, rescheduleAppointment } from "../lib/appointmentChanges";
 import { issueRefund } from "../lib/refunds";
 import { assertDoctorBookable } from "../lib/bookable";
+import { ownedByAccount, resolveBookingPatient } from "../lib/family";
+import { leaveAlertInclude } from "../lib/leaveNow";
+
+/** On a patient's own views: who the visit is for (themself or a family member). */
+const visitFor = { select: { id: true, fullName: true, accountHolderId: true } } as const;
 
 export const appointmentsRouter = Router();
 
@@ -17,7 +22,9 @@ appointmentsRouter.post(
   requireAuth,
   requireRole("PATIENT"),
   asyncHandler(async (req, res) => {
-    const { slotId } = bookAppointmentSchema.parse(req.body);
+    const { slotId, patientId: requestedPatientId } = bookAppointmentSchema.parse(req.body);
+    // Who the visit is for: the account holder or one of their own family members.
+    const patientId = await resolveBookingPatient(req.auth!.profileId, requestedPatientId);
 
     const target = await prisma.slot.findUnique({ where: { id: slotId }, select: { doctorId: true } });
     if (!target) throw new HttpError(404, "Slot not found");
@@ -34,7 +41,7 @@ appointmentsRouter.post(
       const slot = await tx.slot.findUniqueOrThrow({ where: { id: slotId } });
       return tx.appointment.create({
         data: {
-          patientId: req.auth!.profileId,
+          patientId,
           doctorId: slot.doctorId,
           slotId: slot.id,
           status: "PENDING_PAYMENT",
@@ -52,8 +59,8 @@ appointmentsRouter.get(
   requireRole("PATIENT"),
   asyncHandler(async (req, res) => {
     const appointments = await prisma.appointment.findMany({
-      where: { patientId: req.auth!.profileId },
-      include: { doctor: { include: { clinic: true } }, slot: true, payment: { include: { refund: true } } },
+      where: ownedByAccount(req.auth!.profileId),
+      include: { doctor: { include: { clinic: true } }, slot: true, payment: { include: { refund: true } }, patient: visitFor },
       orderBy: { createdAt: "desc" },
     });
     res.json({ appointments });
@@ -65,14 +72,17 @@ appointmentsRouter.get(
   requireAuth,
   requireRole("PATIENT"),
   asyncHandler(async (req, res) => {
-    const appointment = await prisma.appointment.findUnique({
-      where: { id: req.params.id },
-      include: { doctor: { include: { clinic: true } }, slot: true, payment: { include: { refund: true } }, qrToken: true },
+    const found = await prisma.appointment.findFirst({
+      where: { id: req.params.id, ...ownedByAccount(req.auth!.profileId) },
+      include: { ...leaveAlertInclude, slot: true, payment: { include: { refund: true } }, qrToken: true },
     });
-    if (!appointment || appointment.patientId !== req.auth!.profileId) {
-      throw new HttpError(404, "Appointment not found");
-    }
-    res.json({ appointment, leaveAlert: leaveAlertState(appointment) });
+    if (!found) throw new HttpError(404, "Appointment not found");
+    // Only who the visit is for, never the minor/age fields used for the leave-now rule.
+    const { patient, ...appointment } = found;
+    res.json({
+      appointment: { ...appointment, patient: { id: patient.id, fullName: patient.fullName, accountHolderId: patient.accountHolderId } },
+      leaveAlert: leaveAlertState(found),
+    });
   })
 );
 
@@ -81,10 +91,8 @@ appointmentsRouter.get(
   requireAuth,
   requireRole("PATIENT"),
   asyncHandler(async (req, res) => {
-    const appointment = await prisma.appointment.findUnique({ where: { id: req.params.id } });
-    if (!appointment || appointment.patientId !== req.auth!.profileId) {
-      throw new HttpError(404, "Appointment not found");
-    }
+    const appointment = await prisma.appointment.findFirst({ where: { id: req.params.id, ...ownedByAccount(req.auth!.profileId) } });
+    if (!appointment) throw new HttpError(404, "Appointment not found");
     if (!appointment.queueToken || !appointment.queueDate) {
       res.json({
         status: appointment.status,
@@ -122,10 +130,8 @@ appointmentsRouter.post(
   requireRole("PATIENT"),
   asyncHandler(async (req, res) => {
     const { reason } = cancelAppointmentSchema.parse(req.body);
-    const appointment = await prisma.appointment.findUnique({ where: { id: req.params.id } });
-    if (!appointment || appointment.patientId !== req.auth!.profileId) {
-      throw new HttpError(404, "Appointment not found");
-    }
+    const appointment = await prisma.appointment.findFirst({ where: { id: req.params.id, ...ownedByAccount(req.auth!.profileId) } });
+    if (!appointment) throw new HttpError(404, "Appointment not found");
     const { refund } = await cancelAppointment({ appointmentId: appointment.id, by: "patient", actorUserId: req.auth!.userId, reason });
     res.json({ ok: true, refund, refunded: refund === "PROCESSED" });
   })

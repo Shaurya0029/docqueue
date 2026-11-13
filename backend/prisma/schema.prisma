@@ -54,6 +54,14 @@ enum ClinicDayStatus {
   CLOSED
 }
 
+// How a family member is related to the account holder who manages them.
+enum FamilyRelationship {
+  PARENT
+  CHILD
+  SPOUSE
+  OTHER
+}
+
 enum NotificationChannel {
   SMS
   PUSH
@@ -91,20 +99,37 @@ model User {
   notifications Notification[]
 }
 
+// A patient is either an account holder (has a login: userId set) or a
+// family member managed by one (accountHolderId set, no login of their own).
+// Family members have their own name and visit history; their messages go
+// to the account holder's phone.
 model Patient {
   id            String   @id @default(uuid())
-  userId        String   @unique
-  user          User     @relation(fields: [userId], references: [id])
+  userId        String?  @unique
+  user          User?    @relation(fields: [userId], references: [id])
+  accountHolderId String?
+  accountHolder   Patient?            @relation("Family", fields: [accountHolderId], references: [id])
+  familyMembers   Patient[]           @relation("Family")
+  relationship    FamilyRelationship?
+  dateOfBirth     String? // yyyy-mm-dd, optional
+  ageYears        Int?    // when only an age was given...
+  ageRecordedOn   String? // ...and the day (yyyy-mm-dd) it was given
   fullName      String?
   address       String?
   idDocumentRef String?
   consentAt     DateTime?
-  consentSource String? // "app" (patient ticked the box) or "desk" (told the associate, for walk-ins)
+  // "app" (patient ticked the box), "desk" (told the associate, for walk-ins),
+  // "guardian" (the account holder consented for a child under 18) or
+  // "account-holder" (the account holder confirmed an adult member agreed).
+  consentSource String?
   deletedAt     DateTime? // DPDP erasure: personal fields cleared, visit and payment records kept anonymously
   createdAt     DateTime @default(now())
 
   appointments Appointment[]
   slotAlerts   SlotAlert[]
+  notifications Notification[]
+
+  @@index([accountHolderId])
 }
 
 // "Notify me when slots open" for a doctor with no free slots.
@@ -303,6 +328,10 @@ model Notification {
   id        String              @id @default(uuid())
   userId    String
   user      User                @relation(fields: [userId], references: [id])
+  // The patient the message is about (a family member's messages go to the
+  // account holder's phone), so deleting that member removes them too.
+  patientId String?
+  patient   Patient?            @relation(fields: [patientId], references: [id])
   type      NotificationType
   channel   NotificationChannel
   status    NotificationStatus

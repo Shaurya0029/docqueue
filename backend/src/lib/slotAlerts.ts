@@ -1,7 +1,7 @@
 import { prisma } from "./prisma";
 import { HttpError } from "../middleware/errorHandler";
 import { formatIst } from "./dates";
-import { sendNotification } from "./notifications";
+import { notifyPatient } from "./notifications";
 import { BOOKABLE_DOCTOR } from "./bookable";
 
 /** "Notify me when slots open": saving again re-arms an alert that already fired. */
@@ -35,15 +35,16 @@ export async function notifySlotAlerts(doctorId: string): Promise<number> {
     include: { doctor: true },
   });
   if (!next) return 0;
-  const alerts = await prisma.slotAlert.findMany({ where: { doctorId, notifiedAt: null }, include: { patient: true } });
+  const alerts = await prisma.slotAlert.findMany({ where: { doctorId, notifiedAt: null } });
   let sent = 0;
   for (const alert of alerts) {
     const claimed = await prisma.slotAlert.updateMany({ where: { id: alert.id, notifiedAt: null }, data: { notifiedAt: new Date() } });
     if (claimed.count === 0) continue;
-    await sendNotification({
-      userId: alert.patient.userId,
+    // Slot alerts belong to the account holder (the person using the app).
+    await notifyPatient({
+      patientId: alert.patientId,
       type: "SLOTS_AVAILABLE",
-      message: `${next.doctor.fullName} has new appointment slots, starting ${formatIst(next.startsAt)}. Book in the MEDORA app before they fill up.`,
+      message: () => `${next.doctor.fullName} has new appointment slots, starting ${formatIst(next.startsAt)}. Book in the MEDORA app before they fill up.`,
     });
     sent += 1;
   }

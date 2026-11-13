@@ -4,10 +4,11 @@ import { refundPayment, verifyWebhookSignature } from "./payments";
 import { tokenForSlot, ensureClinicDay } from "./queueService";
 import { publishQueueEvent } from "./redis";
 import { generateShortCode, signQrToken } from "./qr";
-import { sendNotification } from "./notifications";
+import { notifyPatient } from "./notifications";
 import { writeAuditLog } from "./audit";
 import { HttpError } from "../middleware/errorHandler";
 import { HOLD_EXPIRED_REASON } from "../jobs/releaseExpiredHolds";
+import { accountUserId, contactSelect } from "./family";
 
 /** The part of Razorpay's payment.captured / order.paid webhook body we rely on. */
 const razorpayEventSchema = z.object({
@@ -66,17 +67,19 @@ async function confirmCapturedPayment(captured: {
 }): Promise<WebhookOutcome> {
   const payment = await prisma.payment.findUnique({
     where: { gatewayOrderId: captured.orderId },
-    include: { appointment: { include: { patient: true } } },
+    include: { appointment: { include: { patient: { select: contactSelect } } } },
   });
   if (!payment) return { outcome: "ignored", reason: "unknown order" };
   const appointment = payment.appointment;
+  // The login that booked: the patient's own, or their account holder's for a family member.
+  const bookerUserId = accountUserId(appointment.patient);
 
   if (payment.gatewayRef === captured.gatewayPaymentId) {
     return { outcome: "duplicate", appointmentId: appointment.id };
   }
   if (captured.amountPaise !== payment.amount * 100) {
     await writeAuditLog({
-      actorUserId: appointment.patient.userId,
+      actorUserId: bookerUserId,
       action: "PAYMENT_AMOUNT_MISMATCH",
       targetType: "Appointment",
       targetId: appointment.id,
@@ -144,13 +147,13 @@ async function confirmCapturedPayment(captured: {
       queueDate: confirmed.queueDate,
       token: confirmed.token,
     });
-    await sendNotification({
-      userId: appointment.patient.userId,
+    await notifyPatient({
+      patientId: appointment.patientId,
       type: "BOOKING_CONFIRMED",
-      message: `Payment received. Your queue token is ${confirmed.token}.`,
+      message: (w) => `Payment received${w.forName}. ${w.Your} queue token is ${confirmed.token}.`,
     });
     await writeAuditLog({
-      actorUserId: appointment.patient.userId,
+      actorUserId: bookerUserId,
       action: "PAYMENT_CONFIRMED",
       targetType: "Appointment",
       targetId: appointment.id,
@@ -161,7 +164,7 @@ async function confirmCapturedPayment(captured: {
 
   const current = await prisma.payment.findUniqueOrThrow({ where: { id: payment.id } });
   if (current.status === "PAID") return { outcome: "duplicate", appointmentId: appointment.id };
-  return refundUnbookablePayment(payment.id, appointment.id, appointment.patient.userId, captured);
+  return refundUnbookablePayment(payment.id, appointment.id, appointment.patientId, bookerUserId, captured);
 }
 
 /**
@@ -172,6 +175,7 @@ async function confirmCapturedPayment(captured: {
 async function refundUnbookablePayment(
   paymentId: string,
   appointmentId: string,
+  patientId: string,
   patientUserId: string,
   captured: { gatewayPaymentId: string; amountPaise: number }
 ): Promise<WebhookOutcome> {
@@ -194,10 +198,10 @@ async function refundUnbookablePayment(
     data: { paymentId, amount: captured.amountPaise / 100, status: refundStatus, gatewayRef },
   });
   if (refundStatus === "PROCESSED") {
-    await sendNotification({
-      userId: patientUserId,
+    await notifyPatient({
+      patientId,
       type: "REFUND_ISSUED",
-      message: "Your payment arrived after the slot was released, so it has been refunded in full.",
+      message: (w) => `Your payment${w.forName} arrived after the slot was released, so it has been refunded in full.`,
     });
   }
   await writeAuditLog({

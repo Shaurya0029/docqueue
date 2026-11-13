@@ -71,7 +71,7 @@ queueRouter.get(
       where: { doctorId, queueDate: date },
       // Only what the schedule shows: the patient's name, never their profile.
       include: {
-        patient: { select: { fullName: true } },
+        patient: { select: { fullName: true, user: { select: { phoneNumber: true } }, accountHolder: { select: { user: { select: { phoneNumber: true } } } } } },
         slot: true,
         payment: { select: { status: true, amount: true, refund: { select: { status: true, amount: true } } } },
       },
@@ -84,7 +84,15 @@ queueRouter.get(
       targetId: `${doctorId}:${date}`,
       patientIds: appointments.map((a) => a.patientId),
     });
-    res.json({ date, appointments });
+    res.json({
+      date,
+      appointments: appointments.map(({ patient, ...a }) => {
+        // A family member is the patient for the visit; the clinic gets only a
+        // number to call (their account holder's), nothing else about that person.
+        const phone = patient.user?.phoneNumber ?? patient.accountHolder?.user?.phoneNumber ?? null;
+        return { ...a, patient: { fullName: patient.fullName }, contactPhone: phone?.startsWith("+") ? phone : null };
+      }),
+    });
   })
 );
 

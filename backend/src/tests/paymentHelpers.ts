@@ -22,8 +22,9 @@ export function sendWebhook(app: Express, rawBody: string, signature = signWebho
     .send(rawBody);
 }
 
-export async function book(app: Express, patientToken: string, slotId: string): Promise<string> {
-  const res = await request(app).post("/appointments/book").set("Authorization", `Bearer ${patientToken}`).send({ slotId });
+/** Books for the account holder, or for one of their family members when `patientId` is given. */
+export async function book(app: Express, patientToken: string, slotId: string, patientId?: string): Promise<string> {
+  const res = await request(app).post("/appointments/book").set("Authorization", `Bearer ${patientToken}`).send({ slotId, patientId });
   if (res.status !== 201) throw new Error(`booking failed: ${res.status} ${JSON.stringify(res.body)}`);
   return res.body.appointment.id as string;
 }
@@ -35,8 +36,8 @@ export async function createOrder(app: Express, patientToken: string, appointmen
 }
 
 /** Book a slot, create the order and deliver a signed capture webhook. */
-export async function bookAndPay(app: Express, patientToken: string, slotId: string) {
-  const appointmentId = await book(app, patientToken, slotId);
+export async function bookAndPay(app: Express, patientToken: string, slotId: string, patientId?: string) {
+  const appointmentId = await book(app, patientToken, slotId, patientId);
   const order = await createOrder(app, patientToken, appointmentId);
   const webhook = await sendWebhook(app, capturedEvent(order.orderId, order.amount));
   const qr = await prisma.qrToken.findUnique({ where: { appointmentId } });

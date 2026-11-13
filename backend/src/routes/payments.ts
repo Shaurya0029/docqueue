@@ -7,6 +7,7 @@ import { createOrderSchema } from "../schemas";
 import { createOrder, signWebhookBody } from "../lib/payments";
 import { processWebhook } from "../lib/paymentService";
 import { env } from "../lib/env";
+import { ownedByAccount } from "../lib/family";
 
 export const paymentsRouter = Router();
 
@@ -16,11 +17,11 @@ paymentsRouter.post(
   requireRole("PATIENT"),
   asyncHandler(async (req, res) => {
     const { appointmentId } = createOrderSchema.parse(req.body);
-    const appointment = await prisma.appointment.findUnique({
-      where: { id: appointmentId },
+    const appointment = await prisma.appointment.findFirst({
+      where: { id: appointmentId, ...ownedByAccount(req.auth!.profileId) },
       include: { doctor: true, payment: true },
     });
-    if (!appointment || appointment.patientId !== req.auth!.profileId) {
+    if (!appointment) {
       throw new HttpError(404, "Appointment not found");
     }
     if (appointment.status !== "PENDING_PAYMENT") {
@@ -83,8 +84,8 @@ paymentsRouter.post(
   asyncHandler(async (req, res) => {
     if (env.paymentsMode !== "stub" || env.isProduction) throw new HttpError(404, "Not found");
     const { appointmentId } = createOrderSchema.parse(req.body);
-    const payment = await prisma.payment.findUnique({ where: { appointmentId }, include: { appointment: true } });
-    if (!payment || payment.appointment.patientId !== req.auth!.profileId || !payment.gatewayOrderId) {
+    const payment = await prisma.payment.findFirst({ where: { appointmentId, appointment: ownedByAccount(req.auth!.profileId) } });
+    if (!payment || !payment.gatewayOrderId) {
       throw new HttpError(404, "No order for this appointment; create one first");
     }
     const rawBody = JSON.stringify({
