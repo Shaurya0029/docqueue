@@ -83,6 +83,28 @@ Each doctor can have one TV link (`/display/<token>`, no login). The token is 25
 - Changing the key makes saved links unreadable in Settings (they keep working on the TV). Regenerate them.
 - Board requests are limited per link and IP (several TVs behind one clinic IP each get their own allowance), plus a per-IP cap on unknown links.
 
+## Admin analytics
+
+Admin portal → **Analytics**, for the admin's own clinics only: bookings by hour and weekday, no-show rate and average consult time per doctor, revenue by day, summary cards, and a CSV export of the same aggregates. No response, chart or export carries patient names, numbers, family members or appointment ids. Every view and export is audit-logged.
+
+Definitions (also on each chart under "How is this calculated?"):
+
+- Days and hours are IST (Asia/Kolkata); date ranges are inclusive in IST. Visits count on the IST day of their slot.
+- **No-show rate** = NO_SHOW / (COMPLETED + NO_SHOW); cancelled and still-open bookings excluded; "Not enough data" under 10.
+- **Average consult time** = mean of (completed − called) for completed visits, skipping anything under 1 or over 120 minutes (the wait-time rule); "Not enough data" under 5 visits.
+- **Revenue** = paid payments minus refunds, by the IST date the payment was received (`Payment.paidAt`), in rupees: gross, refunded and net.
+- **Peak hours** = non-cancelled bookings by slot start hour.
+
+### Demo data for analytics
+
+```bash
+cd backend
+npm run seed:demo          # ~3 months of synthetic history: "[DEMO DATA] Analytics Demo Clinic", 6 doctors, ~22,000 appointments
+npm run seed:demo:remove   # deletes everything it created
+```
+
+The demo clinic belongs to the dev admin (+919800000001). Demo doctors and patients have numbers starting `+917000` and cannot log in. It refuses to run with `NODE_ENV=production`.
+
 ## Background jobs
 
 The API runs these on a timer; each is safe to run on several instances at once.

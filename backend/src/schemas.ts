@@ -191,3 +191,13 @@ export const joinWaitlistSchema = z.object({
 export const waitlistCountQuerySchema = z.object({
   date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
 });
+
+const dateKey = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Use the format yyyy-mm-dd");
+export const analyticsQuerySchema = z
+  .object({
+    from: dateKey.optional(),
+    to: dateKey.optional(),
+    clinicId: z.string().uuid().optional(),
+    doctorId: z.string().uuid().optional(),
+  })
+  .strict();

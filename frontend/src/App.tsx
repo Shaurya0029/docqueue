@@ -18,6 +18,7 @@ import { AppointmentsPage } from "./features/patient/AppointmentsPage";
 import { ProfilePage } from "./features/patient/ProfilePage";
 import { FamilyPage } from "./features/patient/FamilyPage";
 import { DisplayBoardPage } from "./features/display/DisplayBoardPage";
+import { AnalyticsPage } from "./features/admin/analytics/AnalyticsPage";
 
 import { AssociateLayout } from "./features/associate/AssociateLayout";
 import { ScannerPage } from "./features/associate/ScannerPage";
@@ -117,6 +118,7 @@ function AppRoutes() {
         <Route path="doctors" element={<DoctorsPage />} />
         <Route path="associates" element={<AssociatesPage />} />
         <Route path="audit-log" element={<AuditLogPage />} />
+        <Route path="analytics" element={<AnalyticsPage />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/" replace />} />

@@ -144,7 +144,7 @@ export async function addWalkIn(params: {
       });
       if (params.feeCollected) {
         await tx.payment.create({
-          data: { appointmentId: appointment.id, amount: doctor.consultationFee, method: "DESK", status: "PAID" },
+          data: { appointmentId: appointment.id, amount: doctor.consultationFee, method: "DESK", status: "PAID", paidAt: now },
         });
       }
       return { appointment, token, slot };

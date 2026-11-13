@@ -124,7 +124,7 @@ async function confirmCapturedPayment(captured: {
     });
     await tx.payment.update({
       where: { id: payment.id },
-      data: { status: "PAID", gatewayRef: captured.gatewayPaymentId },
+      data: { status: "PAID", gatewayRef: captured.gatewayPaymentId, paidAt: new Date() },
     });
     await tx.qrToken.upsert({
       where: { appointmentId: appointment.id },
@@ -181,7 +181,7 @@ async function refundUnbookablePayment(
 ): Promise<WebhookOutcome> {
   const claimed = await prisma.payment.updateMany({
     where: { id: paymentId, status: "CREATED" },
-    data: { status: "REFUNDED", gatewayRef: captured.gatewayPaymentId },
+    data: { status: "REFUNDED", gatewayRef: captured.gatewayPaymentId, paidAt: new Date() }, // received, then refunded in full
   });
   if (claimed.count === 0) return { outcome: "duplicate", appointmentId };
 

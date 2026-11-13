@@ -12,6 +12,7 @@ import { doctorSettingsRouter } from "./routes/doctorSettings";
 import { adminRouter } from "./routes/admin";
 import { waitlistRouter } from "./routes/waitlist";
 import { displayRouter } from "./routes/display";
+import { analyticsRouter } from "./routes/analytics";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
 export function createApp() {
@@ -40,6 +41,7 @@ export function createApp() {
   app.use(queueRouter); // /doctors/:id/queue, /appointments/doctor/:id/call-next, etc.
   app.use(displayRouter); // /display/:token (public TV board), /doctors/:id/display-link
   app.use(waitlistRouter); // /waitlist/..., /doctors/:id/waitlist
+  app.use(analyticsRouter); // /admin/analytics, /admin/analytics/export.csv
   app.use(adminRouter); // /clinics, /admin/overview, /admin/audit-log
 
   app.use(notFoundHandler);

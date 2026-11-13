@@ -1,5 +1,7 @@
 import {
   Activity,
+  ChartColumn,
+  Download,
   ArrowRight,
   BadgeCheck,
   Bell,
@@ -96,6 +98,8 @@ const ICONS = {
   key: KeyRound,
   heart: HeartPulse,
   activity: Activity,
+  chart: ChartColumn,
+  download: Download,
   pin: MapPin,
   star: Star,
   ticket: Ticket,

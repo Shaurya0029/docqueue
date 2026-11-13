@@ -13,7 +13,9 @@
     "seed": "tsx prisma/seed.ts",
     "test": "vitest run",
     "lint": "oxlint src prisma",
-    "typecheck": "tsc --noEmit -p tsconfig.json"
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "seed:demo": "tsx prisma/seed-demo-analytics.ts",
+    "seed:demo:remove": "tsx prisma/seed-demo-analytics.ts --remove"
   },
   "dependencies": {
     "@prisma/client": "^5.19.1",

@@ -310,10 +310,14 @@ model Payment {
   status        PaymentStatus @default(CREATED)
   gatewayRef     String?      @unique // Razorpay payment id (pay_...)
   gatewayOrderId String?      @unique // Razorpay order id (order_...)
+  // When the money was received (webhook capture, or collected at the desk). Revenue is counted on this date.
+  paidAt        DateTime?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
   refund Refund?
+
+  @@index([paidAt])
 }
 
 model Refund {

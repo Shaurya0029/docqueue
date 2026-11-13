@@ -7,6 +7,7 @@ const NAV: NavItem[] = [
   { to: "/admin/clinics", label: msg("Clinics"), icon: "building" },
   { to: "/admin/doctors", label: msg("Doctors"), icon: "stethoscope" },
   { to: "/admin/associates", label: msg("Associates"), icon: "users" },
+  { to: "/admin/analytics", label: msg("Analytics"), icon: "chart" },
   { to: "/admin/audit-log", label: msg("Audit log"), icon: "shield" },
 ];
 
