@@ -133,6 +133,7 @@ export function BookingPaymentPage() {
           </div>
           {appointment.slot && (
             <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4 sm:grid-cols-2">
+              <InfoRow icon="user" label={t("Patient")} value={appointment.patient?.fullName ?? t("You")} />
               <InfoRow icon="calendar" label={t("Date")} value={formatDate(appointment.slot.startsAt)} />
               <InfoRow icon="clock" label={t("Time")} value={formatTime(appointment.slot.startsAt)} />
               {appointment.doctor?.clinic && <InfoRow icon="pin" label={t("Clinic")} value={appointment.doctor.clinic.name} />}

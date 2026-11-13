@@ -45,6 +45,12 @@ function ScheduleRow({ appointment, doctorId, index }: { appointment: Appointmen
               <Icon name="ticket" className="h-4 w-4 text-brand-500" />
               {t("Token #{n}", { n: appointment.queueToken ?? "–" })}
             </p>
+            {appointment.contactPhone && (
+              <a href={`tel:${appointment.contactPhone}`} className="flex items-center gap-1.5 text-sm font-semibold text-brand-600 hover:underline">
+                <Icon name="phone" className="h-4 w-4" />
+                {appointment.contactPhone}
+              </a>
+            )}
             {refunded && (
               <p className="text-sm font-semibold text-success">{t("Refunded {amount}", { amount: formatRupees(payment!.refund!.amount) })}</p>
             )}

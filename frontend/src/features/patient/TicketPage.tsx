@@ -37,6 +37,9 @@ export function TicketPage() {
   if (isError || !appointment) return <ErrorState message={t("Could not load your ticket")} onRetry={() => refetch()} />;
 
   const isActive = appointment.status === "BOOKED";
+  // Every ticket names who the visit is for: you, or the family member you booked for.
+  const forMember = !!appointment.patient?.accountHolderId;
+  const patientName = appointment.patient?.fullName ?? t("You");
   const fee = appointment.payment?.amount ?? appointment.doctor?.consultationFee ?? 0;
   // Same rule as the server (REFUND_CUTOFF_HOURS): 2+ hours before the slot.
   const refundable = !!appointment.slot && new Date(appointment.slot.startsAt).getTime() - Date.now() >= 2 * 3_600_000;
@@ -68,7 +71,7 @@ export function TicketPage() {
 
   return (
     <div className="space-y-4">
-      <PageHeader eyebrow={t("Live ticket")} title={t("Your ticket")} />
+      <PageHeader eyebrow={t("Live ticket")} title={forMember ? t("{name}'s ticket", { name: patientName }) : t("Your ticket")} />
 
       {appointment.status === "CANCELLED" ? (
         <EmptyState icon="x" title={t("This appointment was cancelled")} hint={cancelledHint} />
@@ -86,7 +89,11 @@ export function TicketPage() {
                 </span>
                 <StatusChip status={appointment.status} />
               </div>
-              <p className="relative mt-4 text-sm font-medium text-white/70">{t("Token")}</p>
+              <p className="relative mt-4 flex items-center gap-1.5 text-sm font-semibold text-white" data-testid="ticket-patient">
+                <Icon name="user" className="h-4 w-4" />
+                {t("Patient: {name}", { name: patientName })}
+              </p>
+              <p className="relative mt-2 text-sm font-medium text-white/70">{t("Token")}</p>
               <p className="relative text-7xl font-extrabold leading-none tracking-tight">#{appointment.queueToken ?? "–"}</p>
               {appointment.doctor && (
                 <p className="relative mt-2 text-sm font-semibold text-white/90">
@@ -203,7 +210,7 @@ export function TicketPage() {
             </Card>
           )}
 
-          {isActive && appointment.leaveAlert && <LeaveNowCard appointmentId={appointment.id} state={appointment.leaveAlert} />}
+          {isActive && appointment.leaveAlert && <LeaveNowCard appointmentId={appointment.id} state={appointment.leaveAlert} patientName={forMember ? patientName : null} />}
 
           {isActive && (
             <div className="space-y-2">

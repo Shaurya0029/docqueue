@@ -16,6 +16,7 @@ import { ReschedulePage } from "./features/patient/ReschedulePage";
 import { WalkInPage } from "./features/associate/WalkInPage";
 import { AppointmentsPage } from "./features/patient/AppointmentsPage";
 import { ProfilePage } from "./features/patient/ProfilePage";
+import { FamilyPage } from "./features/patient/FamilyPage";
 
 import { AssociateLayout } from "./features/associate/AssociateLayout";
 import { ScannerPage } from "./features/associate/ScannerPage";
@@ -69,6 +70,7 @@ function AppRoutes() {
         <Route path="reschedule/:appointmentId" element={<ReschedulePage />} />
         <Route path="appointments" element={<AppointmentsPage />} />
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="family" element={<FamilyPage />} />
       </Route>
 
       <Route

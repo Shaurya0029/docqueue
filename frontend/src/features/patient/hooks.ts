@@ -1,6 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "../../lib/api";
-import type { Appointment, DoctorProfile, DoctorSummary, LeaveAlertState, QueueStatus, Slot } from "../../types/api";
+import type { Appointment, DoctorProfile, DoctorSummary, FamilyMember, FamilyMemberInput, LeaveAlertState, QueueStatus, Slot } from "../../types/api";
 
 export function useDoctorSearch(params: { name?: string; specialization?: string; city?: string }) {
   return useQuery({
@@ -26,8 +26,9 @@ export function useDoctorProfile(doctorId: string | undefined) {
 export function useBookSlot() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (slotId: string) => {
-      const res = await api.post<{ appointment: Appointment }>("/appointments/book", { slotId });
+    /** `patientId`: a family member's id, or undefined to book for yourself. */
+    mutationFn: async ({ slotId, patientId }: { slotId: string; patientId?: string }) => {
+      const res = await api.post<{ appointment: Appointment }>("/appointments/book", { slotId, patientId });
       return res.data.appointment;
     },
     onSuccess: () => {
@@ -178,5 +179,38 @@ export function useDisableLeaveAlert(appointmentId: string | undefined) {
   return useMutation({
     mutationFn: async () => (await api.delete<{ leaveAlert: LeaveAlertState }>(`/appointments/${appointmentId}/leave-alert`)).data.leaveAlert,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["appointment", appointmentId] }),
+  });
+}
+
+/** The family members this account books for. */
+export function useFamily() {
+  return useQuery({
+    queryKey: ["family"],
+    queryFn: async () => (await api.get<{ members: FamilyMember[] }>("/me/patient/family")).data.members,
+  });
+}
+
+export function useSaveFamilyMember() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...body }: FamilyMemberInput & { id?: string }) =>
+      (id
+        ? await api.put<{ member: FamilyMember }>(`/me/patient/family/${id}`, body)
+        : await api.post<{ member: FamilyMember }>("/me/patient/family", body)
+      ).data.member,
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["family"] }),
+  });
+}
+
+/** Erases one family member's data (DPDP); their upcoming bookings are cancelled. */
+export function useDeleteFamilyMember() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) =>
+      (await api.post<{ cancelledBookings: number }>(`/me/patient/family/${id}/delete`, { confirm: "DELETE" })).data,
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["family"] });
+      queryClient.invalidateQueries({ queryKey: ["my-appointments"] });
+    },
   });
 }

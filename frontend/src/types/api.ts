@@ -104,13 +104,41 @@ export interface Appointment {
   payment?: Payment | null;
   qrToken?: { token: string; shortCode: string | null; expiresAt: string; usedAt: string | null } | null;
   cancelReason?: string | null;
-  patient?: { fullName: string | null };
+  /** Who the visit is for: the account holder, or a family member (accountHolderId set). */
+  patient?: { id?: string; fullName: string | null; accountHolderId?: string | null };
+  /** On the doctor's schedule: a number the clinic can call (a family member's account holder's). */
+  contactPhone?: string | null;
   leaveAlert?: LeaveAlertState;
+}
+
+export type FamilyRelationship = "PARENT" | "CHILD" | "SPOUSE" | "OTHER";
+
+export interface FamilyMember {
+  id: string;
+  fullName: string;
+  relationship: FamilyRelationship;
+  dateOfBirth: string | null;
+  ageYears: number | null;
+  ageRecordedOn: string | null;
+  /** Under 18: the account holder consented as their guardian. */
+  isMinor: boolean;
+  consent: { givenAt: string | null; givenVia: "guardian" | "account-holder" | "desk" | null };
+  addedAt: string;
+}
+
+export interface FamilyMemberInput {
+  fullName: string;
+  relationship: FamilyRelationship;
+  dateOfBirth?: string | null;
+  ageYears?: number | null;
+  consent: true;
 }
 
 export interface LeaveAlertState {
   /** The clinic has a location, so the feature is offered. */
   available: boolean;
+  /** False for a child's visit: no location is used, the travel time is typed. */
+  locationAllowed: boolean;
   enabled: boolean;
   travelMinutes: number | null;
   source: "estimate" | "manual" | null;

@@ -2,11 +2,11 @@ import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { AnimatePresence, motion } from "motion/react";
 import { Icon } from "../../components/icons";
-import { Alert, Avatar, Button, Card, ErrorState, Reveal, Section, Spinner, cx } from "../../components/ui";
+import { Alert, Avatar, Button, Card, Chip, ErrorState, Reveal, Section, Spinner, cx } from "../../components/ui";
 import { apiErrorMessage } from "../../lib/api";
 import { clinicHour, formatDate, formatDayKey, formatRupees, formatTime } from "../../lib/formatters";
 import type { Slot } from "../../types/api";
-import { useBookSlot, useDoctorProfile } from "./hooks";
+import { useBookSlot, useDoctorProfile, useFamily } from "./hooks";
 import { useT } from "../../lib/i18n";
 import { NoSlotsPanel } from "./NoSlotsPanel";
 import { msg } from "../../lib/i18n";
@@ -23,6 +23,10 @@ export function DoctorProfilePage() {
   const navigate = useNavigate();
   const { data: doctor, isLoading, isError, refetch } = useDoctorProfile(doctorId);
   const bookSlot = useBookSlot();
+  const { data: family } = useFamily();
+  /** null = booking for yourself; otherwise a family member's patient id. */
+  const [forPatientId, setForPatientId] = useState<string | null>(null);
+  const forMember = family?.find((m) => m.id === forPatientId) ?? null;
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -42,7 +46,7 @@ export function DoctorProfilePage() {
     if (!selectedSlot) return;
     setError(null);
     try {
-      const appointment = await bookSlot.mutateAsync(selectedSlot.id);
+      const appointment = await bookSlot.mutateAsync({ slotId: selectedSlot.id, patientId: forMember?.id });
       navigate(`/patient/book/${appointment.id}`);
     } catch (err) {
       setError(apiErrorMessage(err));
@@ -188,13 +192,30 @@ export function DoctorProfilePage() {
             <Card className="!border-brand-200 p-5 shadow-float">
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="text-xs font-bold uppercase tracking-wider text-brand-600">{t("Your appointment")}</p>
+                  <p className="text-xs font-bold uppercase tracking-wider text-brand-600">
+                    {forMember ? t("Appointment for {name}", { name: forMember.fullName }) : t("Your appointment")}
+                  </p>
                   <p className="font-bold text-ink">
                     {formatDate(selectedSlot.startsAt)} · {formatTime(selectedSlot.startsAt)}
                   </p>
                 </div>
                 <p className="text-xl font-extrabold text-ink">{formatRupees(doctor.consultationFee)}</p>
               </div>
+              <fieldset className="mt-3 min-w-0" data-testid="who-for">
+                <legend className="mb-1.5 text-xs font-bold uppercase tracking-wider text-muted">{t("Who is this visit for?")}</legend>
+                <div className="no-scrollbar -mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+                  <Chip label={t("Myself")} active={!forMember} onClick={() => setForPatientId(null)} />
+                  {family?.map((m) => (
+                    <Chip key={m.id} label={m.fullName} active={forMember?.id === m.id} onClick={() => setForPatientId(m.id)} />
+                  ))}
+                  <Link
+                    to="/patient/family"
+                    className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full px-3 py-2 text-sm font-semibold text-brand-600 border border-dashed border-brand-300 hover:bg-brand-50"
+                  >
+                    <Icon name="users" className="h-4 w-4" /> {t("Add family")}
+                  </Link>
+                </div>
+              </fieldset>
               <p className="mt-2 flex items-start gap-1.5 text-xs text-muted">
                 <Icon name="shield" className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
                 {t("Full refund if cancelled 2+ hours before your slot. No refund after that.")}

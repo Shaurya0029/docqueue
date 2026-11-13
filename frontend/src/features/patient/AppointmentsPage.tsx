@@ -59,6 +59,12 @@ export function AppointmentsPage() {
                 <Avatar name={appointment.doctor?.fullName} />
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-bold text-ink">{appointment.doctor?.fullName ?? t("Doctor")}</p>
+                  {appointment.patient?.accountHolderId && (
+                    <p className="flex items-center gap-1 text-sm font-semibold text-brand-700">
+                      <Icon name="user" className="h-3.5 w-3.5" />
+                      {t("For {name}", { name: appointment.patient.fullName ?? "" })}
+                    </p>
+                  )}
                   {appointment.slot && (
                     <p className="flex items-center gap-1 text-sm text-muted">
                       <Icon name="calendar" className="h-3.5 w-3.5" />

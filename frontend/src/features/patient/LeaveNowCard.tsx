@@ -26,11 +26,12 @@ function locateOnce(): Promise<{ latitude: number; longitude: number }> {
  * the patient taps the button; if it is refused they can type their travel
  * time instead, and they can always correct the estimate.
  */
-export function LeaveNowCard({ appointmentId, state }: { appointmentId: string; state: LeaveAlertState }) {
+export function LeaveNowCard({ appointmentId, state, patientName }: { appointmentId: string; state: LeaveAlertState; patientName: string | null }) {
   const t = useT();
   const setAlert = useSetLeaveAlert(appointmentId);
   const disable = useDisableLeaveAlert(appointmentId);
-  const [manualOpen, setManualOpen] = useState(false);
+  // A child's visit never uses location: the travel time is always typed.
+  const [manualOpen, setManualOpen] = useState(!state.locationAllowed);
   const [minutes, setMinutes] = useState(String(state.travelMinutes ?? ""));
   const [locating, setLocating] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -124,15 +125,19 @@ export function LeaveNowCard({ appointmentId, state }: { appointmentId: string; 
                   {state.sentAt ? t("We've texted you: it's time to leave.") : t("We'll text you when it's time to leave.")}
                 </p>
               </>
-            ) : (
+            ) : state.locationAllowed ? (
               <p className="text-sm text-muted">
                 {t("We'll text you when it's time to leave, based on the queue and your travel time. Your location is used once to estimate the trip and is not stored.")}
+              </p>
+            ) : (
+              <p className="text-sm text-muted">
+                {t("We'll text you when it's time to leave for {name}'s visit. Enter your travel time: location is never used for a child's visit.", { name: patientName ?? "" })}
               </p>
             )}
           </div>
         </div>
 
-        {!state.enabled && !manualOpen && (
+        {!state.enabled && !manualOpen && state.locationAllowed && (
           <div className="space-y-2">
             <Button icon="navigation" className="w-full" loading={locating || setAlert.isPending} onClick={() => void turnOnFromLocation()}>
               {t("Turn on leave-now alerts")}

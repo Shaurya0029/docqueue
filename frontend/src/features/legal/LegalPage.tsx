@@ -29,6 +29,14 @@ const DOCS: Record<"privacy" | "terms", Doc> = {
         body: msg("Only if you turn them on for a booking. Your device's location is read once and sent to us to estimate your travel time to the clinic (if the clinic uses a route-planning service, it is also passed to that service once for the same purpose); we keep only the number of minutes, never the location itself, and it is not written to any log. You can type or correct the minutes yourself, turn the alert off at any time, and the minutes are included in your data download and erased if you delete your account."),
       },
       {
+        heading: msg("Family members"),
+        body: msg("You can add family members and book for them. For each one we keep their name, how they are related to you, their age or date of birth if you give it, your consent and their bookings. Their reminders come to your phone and name them. The clinic sees the family member as the patient and gets only your phone number to reach you. Family members are in your data download; you can remove any of them at any time, which erases their data, and deleting your account removes them all."),
+      },
+      {
+        heading: msg("Children under 18"),
+        body: msg("For a family member under 18 you act as their parent or legal guardian and give consent on their behalf; we record that you did and when. We collect no tracking or behavioural data about children: a child's visit never uses location (leave-now alerts take only the travel time you type), and their data is never used for profiling or advertising."),
+      },
+      {
         heading: msg("Who can see it"),
         body: msg("Only the clinic staff (doctors, front-desk associates and clinic admins) of the clinic you book with. Every staff action on patient data is recorded in an audit log."),
       },

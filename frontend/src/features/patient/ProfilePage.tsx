@@ -1,4 +1,7 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { Icon } from "../../components/icons";
+import { useFamily } from "./hooks";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Alert, Avatar, Button, Card, Field, Input, Section, Spinner } from "../../components/ui";
 import { api, apiErrorMessage } from "../../lib/api";
@@ -15,6 +18,8 @@ interface MeResponse {
 /** DPDP rights: download everything we hold, or erase the account. */
 function YourDataSection({ onDeleted }: { onDeleted: () => void }) {
   const t = useT();
+  const { data: family } = useFamily();
+  const familyNames = (family ?? []).map((m) => m.fullName);
   const [downloading, setDownloading] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [typed, setTyped] = useState("");
@@ -66,6 +71,11 @@ function YourDataSection({ onDeleted }: { onDeleted: () => void }) {
       ) : (
         <div className="space-y-3 rounded-2xl bg-danger-soft p-3 text-sm text-ink">
           <p className="font-semibold text-danger">{t("This cannot be undone.")}</p>
+          {familyNames.length > 0 && (
+            <p className="rounded-xl bg-surface p-2 font-semibold text-danger ring-1 ring-danger/30" data-testid="delete-family-warning">
+              {t("Your family members will be deleted too: {names}. Their bookings are cancelled and their data erased.", { names: familyNames.join(", ") })}
+            </p>
+          )}
           <ul className="list-disc space-y-1 pl-5">
             <li>{t("Upcoming bookings are cancelled. Those 2+ hours away are refunded in full.")}</li>
             <li>{t("Your name, phone number, address and messages are erased and you are logged out.")}</li>
@@ -87,6 +97,28 @@ function YourDataSection({ onDeleted }: { onDeleted: () => void }) {
       <div className="mt-3">
         <Alert>{error}</Alert>
       </div>
+    </Section>
+  );
+}
+
+/** Profile → Family: who this account books for. */
+function FamilySection() {
+  const t = useT();
+  const { data: family } = useFamily();
+  return (
+    <Section title={t("Family")} icon="users">
+      <p className="mb-3 text-sm text-muted">
+        {family && family.length > 0
+          ? t("You book for: {names}.", { names: family.map((m) => m.fullName).join(", ") })
+          : t("Book for your parents, children or spouse from this account.")}
+      </p>
+      <Link
+        to="/patient/family"
+        className="flex items-center justify-between rounded-2xl bg-brand-50 px-4 py-3 font-semibold text-brand-700 ring-1 ring-brand-100 transition hover:ring-brand-300"
+      >
+        {t("Manage family members")}
+        <Icon name="chevronRight" className="h-4 w-4" />
+      </Link>
     </Section>
   );
 }
@@ -188,6 +220,8 @@ export function ProfilePage() {
           </Button>
         </div>
       </Section>
+
+      <FamilySection />
 
       <YourDataSection onDeleted={logout} />
 
