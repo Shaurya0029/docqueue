@@ -5,7 +5,8 @@ import { api, apiErrorMessage } from "../../lib/api";
 import { useT } from "../../lib/i18n";
 
 interface DisplayLink {
-  token: string;
+  /** null: saved under an earlier BOARD_LINK_KEY; it still works on the TV, regenerate it to see it here. */
+  token: string | null;
   prefix: string;
   createdAt: string;
 }
@@ -48,7 +49,7 @@ export function DisplayLinkManager({ doctorId }: { doctorId: string }) {
   }
 
   if (isLoading) return null;
-  const url = link ? `${window.location.origin}/display/${link.token}?lang=${lang}&theme=${theme}` : "";
+  const url = link?.token ? `${window.location.origin}/display/${link.token}?lang=${lang}&theme=${theme}` : "";
 
   async function copy() {
     try {
@@ -75,14 +76,22 @@ export function DisplayLinkManager({ doctorId }: { doctorId: string }) {
             <Segmented value={lang} onChange={setLang} options={[{ value: "en", label: "English" }, { value: "hi", label: "हिंदी" }]} />
             <Segmented value={theme} onChange={setTheme} options={[{ value: "dark", label: t("Dark") }, { value: "light", label: t("Light") }]} />
           </div>
-          <Input readOnly value={url} onFocus={(e) => e.currentTarget.select()} aria-label={t("TV link")} data-testid="display-link-url" />
+          {url ? (
+            <Input readOnly value={url} onFocus={(e) => e.currentTarget.select()} aria-label={t("TV link")} data-testid="display-link-url" />
+          ) : (
+            <Alert tone="warning">{t("This link was saved with an earlier encryption key, so it can't be shown. It still works on the TV. Regenerate it to see and copy a new link.")}</Alert>
+          )}
           <div className="flex flex-wrap gap-2">
-            <Button size="sm" variant="secondary" icon="file" onClick={() => void copy()}>
-              {copied ? t("Copied") : t("Copy link")}
-            </Button>
-            <a href={url} target="_blank" rel="noreferrer noopener" className="inline-flex items-center rounded-xl px-3 py-2 text-sm font-semibold text-brand-600 ring-1 ring-brand-200 hover:bg-brand-50">
-              {t("Open board")}
-            </a>
+            {url && (
+              <>
+                <Button size="sm" variant="secondary" icon="file" onClick={() => void copy()}>
+                  {copied ? t("Copied") : t("Copy link")}
+                </Button>
+                <a href={url} target="_blank" rel="noreferrer noopener" className="inline-flex items-center rounded-xl px-3 py-2 text-sm font-semibold text-brand-600 ring-1 ring-brand-200 hover:bg-brand-50">
+                  {t("Open board")}
+                </a>
+              </>
+            )}
             <Button size="sm" variant="outline" onClick={() => setConfirm("regenerate")}>
               {t("Regenerate")}
             </Button>

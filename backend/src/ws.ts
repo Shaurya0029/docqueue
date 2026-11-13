@@ -7,9 +7,8 @@ import { redisSub, queueChannel } from "./lib/redis";
 import { assertDoctorAccess } from "./lib/scope";
 import { isRevoked } from "./lib/revocation";
 import { ownedByAccount } from "./lib/family";
-import { DISPLAY_REVOKED_CHANNEL, boardSnapshot, findLiveLink, logSafe } from "./lib/displayLinks";
-import { withinLimit } from "./lib/otp";
-import { pickBoard, DISPLAY_REQUESTS_PER_MINUTE } from "./routes/display";
+import { DISPLAY_REVOKED_CHANNEL, boardSnapshot, logSafe } from "./lib/displayLinks";
+import { boardAccess, pickBoard } from "./routes/display";
 
 /** Signed-in sockets (staff, patients): they get the doctor's queue events as published. */
 const channelSockets = new Map<string, Set<WebSocket>>();
@@ -96,15 +95,12 @@ function unsubscribeBoard(doctorId: string, board: BoardSocket): void {
 
 /** A board connects with ?display=<token>: scoped to that link's one doctor, nothing else. */
 async function connectBoard(socket: WebSocket, token: string, ip: string): Promise<void> {
-  if (!(await withinLimit(`display:rate:${ip}`, DISPLAY_REQUESTS_PER_MINUTE, 60))) {
-    socket.close(4029, "Too many requests");
+  const access = await boardAccess(token, ip);
+  if (access.status !== "ok") {
+    socket.close(access.status === "limited" ? 4029 : 4004, access.status === "limited" ? "Too many requests" : "Not found");
     return;
   }
-  const link = await findLiveLink(token);
-  if (!link) {
-    socket.close(4004, "Not found");
-    return;
-  }
+  const { link } = access;
   if (socket.readyState !== WebSocket.OPEN) return; // the TV went away during the lookup
   const board: BoardSocket = { socket, linkId: link.id };
   subscribeBoard(link.doctorId, board);

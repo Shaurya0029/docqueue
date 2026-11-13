@@ -25,8 +25,8 @@ const prefixOf = (token: string) => token.slice(0, 6);
 /** Short, safe form for logs: never the whole token. */
 export const logSafe = (token: string) => `${prefixOf(token)}…`;
 
-// Derived from the JWT secret so no new secret is needed; changing it makes stored links unreadable (regenerate them).
-const key = crypto.createHash("sha256").update(`display-link-encryption:${env.jwtSecret}`).digest();
+// Its own key (BOARD_LINK_KEY), so rotating the JWT secret never touches board links.
+const key = env.boardLinkKey;
 
 function encrypt(token: string): string {
   const iv = crypto.randomBytes(12);
@@ -49,14 +49,22 @@ export async function findLiveLink(token: string): Promise<{ id: string; doctorI
 }
 
 export interface DisplayLinkView {
-  token: string;
+  /** null when the link was saved under an earlier BOARD_LINK_KEY: it still works on the TV, but regenerate it to see it. */
+  token: string | null;
   prefix: string;
   createdAt: Date;
 }
 
 export async function getDisplayLink(doctorId: string): Promise<DisplayLinkView | null> {
   const link = await prisma.displayLink.findFirst({ where: { doctorId, revokedAt: null } });
-  return link ? { token: decrypt(link.tokenEncrypted), prefix: link.tokenPrefix, createdAt: link.createdAt } : null;
+  if (!link) return null;
+  let token: string | null = null;
+  try {
+    token = decrypt(link.tokenEncrypted);
+  } catch {
+    token = null; // saved under another key
+  }
+  return { token, prefix: link.tokenPrefix, createdAt: link.createdAt };
 }
 
 async function insertLink(tx: Prisma.TransactionClient, doctorId: string, actorUserId: string) {

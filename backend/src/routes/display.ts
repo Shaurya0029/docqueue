@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import { Router, type NextFunction, type Request, type Response } from "express";
 import { asyncHandler } from "../middleware/errorHandler";
 import { requireAuth, requireRole } from "../middleware/auth";
@@ -17,8 +18,28 @@ import {
 
 export const displayRouter = Router();
 
-/** Per-IP requests per minute to the public board API (a clinic's TVs share an IP; boards poll only as a fallback). */
-export const DISPLAY_REQUESTS_PER_MINUTE = 120;
+/**
+ * Requests per minute per link and IP: several TVs behind one clinic IP each
+ * have their own allowance (boards poll only as a fallback, so this is ample).
+ */
+export const BOARD_REQUESTS_PER_MINUTE = 240;
+/** Requests per minute per IP for links that do not exist: guessing never gets a fresh allowance per guess. */
+export const UNKNOWN_LINK_REQUESTS_PER_MINUTE = 30;
+
+/** Rate-limit key for a link: a hash prefix, never the token itself. */
+export const linkRateKey = (token: string, ip: string) =>
+  `display:rate:${crypto.createHash("sha256").update(token).digest("hex").slice(0, 16)}:${ip}`;
+
+type LiveLink = NonNullable<Awaited<ReturnType<typeof findLiveLink>>>;
+
+/** Rate limits (per link + IP, then per IP for unknown links) and the lookup, for the board API and its socket. */
+export async function boardAccess(token: string, ip: string): Promise<{ status: "limited" | "missing" } | { status: "ok"; link: LiveLink }> {
+  if (!(await withinLimit(linkRateKey(token, ip), BOARD_REQUESTS_PER_MINUTE, 60))) return { status: "limited" };
+  const link = await findLiveLink(token);
+  if (link) return { status: "ok", link };
+  if (!(await withinLimit(`display:miss:${ip}`, UNKNOWN_LINK_REQUESTS_PER_MINUTE, 60))) return { status: "limited" };
+  return { status: "missing" };
+}
 
 /** Same body as any unknown URL: invalid, unknown and revoked links are indistinguishable. */
 const notFound = (res: Response) => res.status(404).json({ error: "Not found" });
@@ -30,18 +51,6 @@ function boardHeaders(_req: Request, res: Response, next: NextFunction) {
   next();
 }
 
-async function limitPerIp(req: Request, res: Response, next: NextFunction) {
-  try {
-    if (!(await withinLimit(`display:rate:${req.ip}`, DISPLAY_REQUESTS_PER_MINUTE, 60))) {
-      res.status(429).json({ error: "Too many requests, try again later" });
-      return;
-    }
-    next();
-  } catch (err) {
-    next(err);
-  }
-}
-
 /** Copies only the whitelisted fields, so nothing else can ever reach the TV. */
 export function pickBoard(board: BoardPayload): BoardPayload {
   return Object.fromEntries(BOARD_FIELDS.map((k) => [k, board[k]])) as unknown as BoardPayload;
@@ -51,14 +60,15 @@ export function pickBoard(board: BoardPayload): BoardPayload {
 displayRouter.get(
   "/display/:token",
   boardHeaders,
-  limitPerIp,
   asyncHandler(async (req, res) => {
     const token = String(req.params.token);
-    const link = await findLiveLink(token);
-    if (!link) {
-      notFound(res);
+    const access = await boardAccess(token, req.ip ?? "unknown");
+    if (access.status !== "ok") {
+      if (access.status === "limited") res.status(429).json({ error: "Too many requests, try again later" });
+      else notFound(res);
       return;
     }
+    const { link } = access;
     try {
       res.json({ board: pickBoard(await boardSnapshot(link.doctorId)) });
     } catch (err) {

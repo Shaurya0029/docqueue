@@ -26,6 +26,20 @@ if (isProduction && smsMode === "stub") {
   throw new Error("SMS_MODE=stub is not allowed when NODE_ENV=production");
 }
 
+/**
+ * Key for the waiting-room board links' stored (encrypted) copy: 32 bytes,
+ * base64 (`openssl rand -base64 32`). Required in production; a fixed
+ * dev-only key is used otherwise. Changing it makes saved links unreadable
+ * in Settings (they still work on the TV until regenerated).
+ */
+const DEV_BOARD_LINK_KEY = "ZGV2LW9ubHktYm9hcmQtbGluay1rZXktMzItYnl0ZXM="; // "dev-only-board-link-key-32-bytes"
+function boardLinkKey(): Buffer {
+  const raw = devDefault("BOARD_LINK_KEY", DEV_BOARD_LINK_KEY);
+  const key = Buffer.from(raw, "base64");
+  if (key.length !== 32) throw new Error("BOARD_LINK_KEY must be 32 bytes, base64-encoded (openssl rand -base64 32)");
+  return key;
+}
+
 export const env = {
   port: Number(process.env.PORT ?? 4000),
   nodeEnv,
@@ -33,6 +47,7 @@ export const env = {
   databaseUrl: required("DATABASE_URL"),
   redisUrl: required("REDIS_URL", "redis://localhost:6379"),
   jwtSecret: required("JWT_SECRET"),
+  boardLinkKey: boardLinkKey(),
   jwtRefreshSecret: required("JWT_REFRESH_SECRET"),
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
   // "Leave now" travel time: straight-line (default, no key) or osrm.

@@ -7,7 +7,7 @@ import { createApp } from "../app";
 import { prisma } from "../lib/prisma";
 import { attachWebSocketServer } from "../ws";
 import { BOARD_FIELDS, boardSnapshot } from "../lib/displayLinks";
-import { pickBoard, DISPLAY_REQUESTS_PER_MINUTE } from "../routes/display";
+import { pickBoard, BOARD_REQUESTS_PER_MINUTE, UNKNOWN_LINK_REQUESTS_PER_MINUTE } from "../routes/display";
 import { createAssociate, createClinicWithAdmin, createDoctor, createPatient, createSlotSoon } from "./factories";
 import { bookAndPay } from "./paymentHelpers";
 
@@ -148,14 +148,25 @@ describe("the board", () => {
     expect((await board((await w.link()).token)).status).toBe(200);
   });
 
-  it(`is rate-limited to ${DISPLAY_REQUESTS_PER_MINUTE} requests a minute per IP`, async () => {
+  it(`is rate-limited per link and IP (${BOARD_REQUESTS_PER_MINUTE}/min), so TVs behind one clinic IP do not share an allowance`, async () => {
+    const w = await world();
+    const tvA = (await w.link()).token;
+    const tvB = (await w.link(w.b.id, w.tokenB)).token;
+    const clinicIp = freshIp();
+    for (let i = 0; i < BOARD_REQUESTS_PER_MINUTE; i++) expect((await board(tvA, clinicIp)).status).toBe(200);
+    expect((await board(tvA, clinicIp)).status).toBe(429);
+    expect((await board(tvB, clinicIp)).status).toBe(200); // the other TV on the same IP is unaffected
+    expect((await board(tvA, freshIp())).status).toBe(200); // and so is the same link elsewhere
+  });
+
+  it(`limits guessing: ${UNKNOWN_LINK_REQUESTS_PER_MINUTE} unknown links a minute per IP, each guess counted`, async () => {
     const w = await world();
     const { token } = await w.link();
     const ip = freshIp();
-    for (let i = 0; i < DISPLAY_REQUESTS_PER_MINUTE; i++) expect((await board(token, ip)).status).toBe(200);
-    expect((await board(token, ip)).status).toBe(429);
-    expect((await board("unknown", ip)).status).toBe(429); // guessing is limited too
-    expect((await board(token, freshIp())).status).toBe(200); // other clinics are unaffected
+    const guess = (i: number) => `${"G".repeat(40)}${String(i).padStart(3, "0")}`;
+    for (let i = 0; i < UNKNOWN_LINK_REQUESTS_PER_MINUTE; i++) expect((await board(guess(i), ip)).status).toBe(404);
+    expect((await board(guess(999), ip)).status).toBe(429);
+    expect((await board(token, ip)).status).toBe(200); // a real link from that IP still works
   });
 });
 

@@ -75,6 +75,14 @@ A booking is confirmed **only** by Razorpay's signed webhook, never by the brows
 3. In the Razorpay dashboard (test mode), add a webhook for `payment.captured` pointing at `<that URL>/payments/webhook`, with the same secret.
 4. Restart the API, book a slot and pay with one of [Razorpay's test cards](https://razorpay.com/docs/payments/payments/test-card-details/).
 
+## Waiting-room board links
+
+Each doctor can have one TV link (`/display/<token>`, no login). The token is 256 random bits; the database keeps its SHA-256 for lookups and an AES-256-GCM-encrypted copy so staff can view the link again in Settings.
+
+- `BOARD_LINK_KEY` in `backend/.env`: the encryption key, 32 bytes base64 (`openssl rand -base64 32`). **Required in production**: the API refuses to start without it. Locally a fixed dev key is used if it is unset.
+- Changing the key makes saved links unreadable in Settings (they keep working on the TV). Regenerate them.
+- Board requests are limited per link and IP (several TVs behind one clinic IP each get their own allowance), plus a per-IP cap on unknown links.
+
 ## Background jobs
 
 The API runs these on a timer; each is safe to run on several instances at once.
