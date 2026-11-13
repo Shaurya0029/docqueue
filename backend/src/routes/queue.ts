@@ -6,8 +6,8 @@ import { assertDoctorAccess , resolveDoctorScope } from "../lib/scope";
 import { assertTransition } from "../lib/lifecycle";
 import { setNowServing, publishQueueUpdate } from "../lib/queueService";
 import { todayKey } from "../lib/dates";
-import { pauseQueueSchema, walkInSchema } from "../schemas";
-import { addWalkIn } from "../lib/walkIns";
+import { pauseQueueSchema, walkInFamilyCodeSchema, walkInSchema } from "../schemas";
+import { addWalkIn, requestFamilyConfirmation } from "../lib/walkIns";
 import { auditStaffRead, writeAuditLog } from "../lib/audit";
 
 export const queueRouter = Router();
@@ -71,7 +71,9 @@ queueRouter.get(
       where: { doctorId, queueDate: date },
       // Only what the schedule shows: the patient's name, never their profile.
       include: {
-        patient: { select: { fullName: true, user: { select: { phoneNumber: true } }, accountHolder: { select: { user: { select: { phoneNumber: true } } } } } },
+        patient: {
+          select: { fullName: true, walkInPhone: true, user: { select: { phoneNumber: true } }, accountHolder: { select: { user: { select: { phoneNumber: true } } } } },
+        },
         slot: true,
         payment: { select: { status: true, amount: true, refund: { select: { status: true, amount: true } } } },
       },
@@ -84,15 +86,24 @@ queueRouter.get(
       targetId: `${doctorId}:${date}`,
       patientIds: appointments.map((a) => a.patientId),
     });
-    res.json({
-      date,
-      appointments: appointments.map(({ patient, ...a }) => {
-        // A family member is the patient for the visit; the clinic gets only a
-        // number to call (their account holder's), nothing else about that person.
-        const phone = patient.user?.phoneNumber ?? patient.accountHolder?.user?.phoneNumber ?? null;
-        return { ...a, patient: { fullName: patient.fullName }, contactPhone: phone?.startsWith("+") ? phone : null };
-      }),
+    const rows = appointments.map(({ patient, ...a }) => {
+      // A family member is the patient for the visit; the clinic gets only a
+      // number to call (their account holder's), nothing else about that person.
+      const phone = patient.user?.phoneNumber ?? patient.accountHolder?.user?.phoneNumber ?? patient.walkInPhone ?? null;
+      return { ...a, patient: { fullName: patient.fullName }, contactPhone: phone?.startsWith("+") ? phone : null };
     });
+    const withNumber = rows.filter((r) => r.contactPhone).map((r) => r.patientId);
+    if (withNumber.length > 0) {
+      // Every view of contact numbers is logged (not throttled like the schedule view above).
+      await writeAuditLog({
+        actorUserId: req.auth!.userId,
+        action: "STAFF_VIEWED_CONTACT_NUMBERS",
+        targetType: "DoctorDay",
+        targetId: `${doctorId}:${date}`,
+        metadata: { patientIds: [...new Set(withNumber)] },
+      });
+    }
+    res.json({ date, appointments: rows });
   })
 );
 
@@ -109,9 +120,22 @@ queueRouter.post(
       fullName: body.fullName,
       phoneNumber: body.phoneNumber,
       feeCollected: body.feeCollected,
+      familyCode: body.familyCode,
       actorUserId: req.auth!.userId,
     });
     res.status(201).json(result);
+  })
+);
+
+/** Texts the number's account holder a code to confirm a walk-in is their family member. */
+queueRouter.post(
+  "/doctors/:id/walk-ins/family-code",
+  requireAuth,
+  requireRole("ASSOCIATE", "DOCTOR"),
+  asyncHandler(async (req, res) => {
+    const doctorId = await resolveDoctorScope(req.auth!, req.params.id);
+    const body = walkInFamilyCodeSchema.parse(req.body);
+    res.json(await requestFamilyConfirmation({ doctorId, ...body, actorUserId: req.auth!.userId }));
   })
 );
 

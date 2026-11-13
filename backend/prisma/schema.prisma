@@ -99,8 +99,9 @@ model User {
   notifications Notification[]
 }
 
-// A patient is either an account holder (has a login: userId set) or a
-// family member managed by one (accountHolderId set, no login of their own).
+// A patient is an account holder (has a login: userId set), a family member
+// managed by one (accountHolderId set, no login of their own), or a separate
+// walk-in record (walkInPhone set). Exactly one of the three.
 // Family members have their own name and visit history; their messages go
 // to the account holder's phone.
 model Patient {
@@ -114,6 +115,10 @@ model Patient {
   dateOfBirth     String? // yyyy-mm-dd, optional
   ageYears        Int?    // when only an age was given...
   ageRecordedOn   String? // ...and the day (yyyy-mm-dd) it was given
+  // A walk-in the desk added with a number that belongs to someone else's
+  // account, without that account holder confirming: a separate record that
+  // keeps only the number given and is never linked to the account.
+  walkInPhone     String?
   fullName      String?
   address       String?
   idDocumentRef String?

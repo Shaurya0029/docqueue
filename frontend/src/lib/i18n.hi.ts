@@ -450,8 +450,8 @@ export const HI: Record<string, string> = {
   "The camera could not start. Type the check-in code below instead.": "कैमरा शुरू नहीं हो सका। इसके बजाय नीचे चेक-इन कोड लिखें।",
   "Check-in QR code": "चेक-इन QR कोड",
   "Please tick the box to agree before continuing.": "आगे बढ़ने से पहले कृपया सहमति वाले बॉक्स पर टिक करें।",
-  "I agree that MEDORA may store my name, phone number and appointment details to book and manage my visits, as described in the":
-    "मैं सहमत हूँ कि MEDORA मेरी अपॉइंटमेंट बुक और मैनेज करने के लिए मेरा नाम, फ़ोन नंबर और अपॉइंटमेंट की जानकारी रख सकता है, जैसा कि इसमें बताया गया है:",
+  "I agree that MEDORA may store my name, phone number and appointment details to book and manage my visits, and that the clinic I book with can see my phone number to contact me, as described in the":
+    "मैं सहमत हूँ कि MEDORA मेरी अपॉइंटमेंट बुक और मैनेज करने के लिए मेरा नाम, फ़ोन नंबर और अपॉइंटमेंट की जानकारी रख सकता है, और जिस क्लिनिक में मैं बुक करता/करती हूँ, वह मुझसे संपर्क के लिए मेरा फ़ोन नंबर देख सकता है, जैसा कि इसमें बताया गया है:",
   "I can download or delete my data at any time from my profile.": "मैं अपनी प्रोफ़ाइल से कभी भी अपना डेटा डाउनलोड या डिलीट कर सकता/सकती हूँ।",
   "Verified": "सत्यापित",
   "Reg. no. {number}, {council}": "पंजीकरण सं. {number}, {council}",
@@ -542,7 +542,8 @@ export const HI: Record<string, string> = {
   "Family": "परिवार",
   "For a family member under 18 you act as their parent or legal guardian and give consent on their behalf; we record that you did and when. We collect no tracking or behavioural data about children: a child's visit never uses location (leave-now alerts take only the travel time you type), and their data is never used for profiling or advertising.": "18 साल से कम उम्र के परिवार के सदस्य के लिए आप उनके माता-पिता या क़ानूनी अभिभावक के रूप में उनकी ओर से सहमति देते हैं; हम रिकॉर्ड करते हैं कि आपने सहमति दी और कब। हम बच्चों के बारे में कोई ट्रैकिंग या व्यवहार संबंधी डेटा नहीं लेते: बच्चे की विज़िट के लिए कभी लोकेशन का इस्तेमाल नहीं होता (निकलने का अलर्ट सिर्फ़ आपका लिखा यात्रा समय लेता है), और उनका डेटा कभी प्रोफ़ाइलिंग या विज्ञापन के लिए इस्तेमाल नहीं होता।",
   "For {name}": "{name} के लिए",
-  "I am {name}'s parent or legal guardian. As their guardian, I consent to MEDORA and the clinics they visit using their name, age and appointment details to book and manage their visits. Nothing about a child's location or behaviour is collected.": "मैं {name} का/की माता-पिता या क़ानूनी अभिभावक हूँ। अभिभावक के रूप में, मैं सहमति देता/देती हूँ कि MEDORA और जिन क्लिनिक में वे जाते हैं, उनकी विज़िट बुक करने और संभालने के लिए उनका नाम, उम्र और अपॉइंटमेंट की जानकारी इस्तेमाल कर सकते हैं। बच्चे की लोकेशन या व्यवहार के बारे में कुछ भी नहीं लिया जाता।",
+  "I am {name}'s parent or legal guardian. As their guardian, I consent to MEDORA and the clinics they visit using their name, age and appointment details to book and manage their visits; the clinic sees my phone number as their contact. Nothing about a child's location or behaviour is collected.":
+    "मैं {name} का/की माता-पिता या क़ानूनी अभिभावक हूँ। अभिभावक के रूप में, मैं सहमति देता/देती हूँ कि MEDORA और जिन क्लिनिक में वे जाते हैं, उनकी विज़िट बुक करने और संभालने के लिए उनका नाम, उम्र और अपॉइंटमेंट की जानकारी इस्तेमाल कर सकते हैं; क्लिनिक संपर्क के लिए मेरा फ़ोन नंबर देखता है। बच्चे की लोकेशन या व्यवहार के बारे में कुछ भी नहीं लिया जाता।",
   "Keep": "रहने दें",
   "Manage family members": "परिवार के सदस्य संभालें",
   "Myself": "मेरे लिए",
@@ -566,6 +567,12 @@ export const HI: Record<string, string> = {
   "Your family members will be deleted too: {names}. Their bookings are cancelled and their data erased.": "आपके परिवार के सदस्य भी डिलीट हो जाएँगे: {names}। उनकी बुकिंग रद्द होंगी और उनका डेटा मिटा दिया जाएगा।",
   "e.g. Asha Sharma": "जैसे आशा शर्मा",
   "this person": "इस व्यक्ति",
-  "{name} has agreed that I may book for them and that MEDORA and the clinics they visit may use their name, age and appointment details to manage their visits.": "{name} ने सहमति दी है कि मैं उनके लिए बुक कर सकता/सकती हूँ, और MEDORA व जिन क्लिनिक में वे जाते हैं, उनकी विज़िट संभालने के लिए उनका नाम, उम्र और अपॉइंटमेंट की जानकारी इस्तेमाल कर सकते हैं।",
+  "{name} has agreed that I may book for them and that MEDORA and the clinics they visit may use their name, age and appointment details to manage their visits; the clinic sees my phone number as their contact.":
+    "{name} ने सहमति दी है कि मैं उनके लिए बुक कर सकता/सकती हूँ, और MEDORA व जिन क्लिनिक में वे जाते हैं, उनकी विज़िट संभालने के लिए उनका नाम, उम्र और अपॉइंटमेंट की जानकारी इस्तेमाल कर सकते हैं; क्लिनिक संपर्क के लिए मेरा फ़ोन नंबर देखता है।",
   "{name}'s ticket": "{name} का टिकट",
+  "Your phone number and the clinic": "आपका फ़ोन नंबर और क्लिनिक",
+  "The doctor and front desk of the clinic you book with can see the phone number on your booking (yours, including as the contact for a family member you book for) so they can reach you about the visit. Every time clinic staff view these numbers it is recorded in an audit log.": "जिस क्लिनिक में आप बुक करते हैं, उसके डॉक्टर और फ्रंट डेस्क आपकी बुकिंग पर दिया फ़ोन नंबर देख सकते हैं (आपका नंबर, जिसमें परिवार के उस सदस्य के संपर्क के रूप में भी शामिल है जिसके लिए आप बुक करते हैं), ताकि वे विज़िट के बारे में आपसे संपर्क कर सकें। क्लिनिक स्टाफ़ जब भी ये नंबर देखता है, यह ऑडिट लॉग में दर्ज होता है।",
+  "Added at the front desk": "फ्रंट डेस्क पर जोड़े गए मरीज़",
+  "If you come in without the app, the front desk can add you with your name and a phone number. If that number belongs to someone's MEDORA account, you are added to their family only if the account holder confirms with a code sent to their phone. Otherwise your visit is kept as a separate record with the name and number you gave, it is not linked to that account and no messages are sent. Ask the clinic to see or delete a separate record.": "अगर आप ऐप के बिना आते हैं, तो फ्रंट डेस्क आपका नाम और एक फ़ोन नंबर लेकर आपको जोड़ सकता है। अगर वह नंबर किसी के MEDORA अकाउंट का है, तो आपको उनके परिवार में तभी जोड़ा जाता है जब अकाउंट होल्डर अपने फ़ोन पर भेजे गए कोड से पुष्टि करें। वरना आपकी विज़िट आपके दिए नाम और नंबर के साथ एक अलग रिकॉर्ड में रखी जाती है, वह उस अकाउंट से नहीं जुड़ती और कोई संदेश नहीं भेजा जाता। अलग रिकॉर्ड देखने या मिटवाने के लिए क्लिनिक से कहें।",
+  "The patient agreed that MEDORA may store their name and phone number to manage this visit, and that the clinic can see the number to contact them.": "मरीज़ ने सहमति दी कि MEDORA इस विज़िट को संभालने के लिए उनका नाम और फ़ोन नंबर रख सकता है, और क्लिनिक उनसे संपर्क के लिए यह नंबर देख सकता है।",
 };

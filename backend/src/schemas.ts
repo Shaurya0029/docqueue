@@ -67,6 +67,13 @@ export const walkInSchema = z.object({
   feeCollected: z.boolean(),
   // The associate confirms the patient agreed, in person, to MEDORA storing their details.
   consent: z.literal(true, { errorMap: () => ({ message: "The patient's consent is required" }) }),
+  /** The code texted to the number's account holder, confirming the walk-in is their family member. */
+  familyCode: z.string().regex(/^\d{6}$/, "Enter the 6-digit code").optional(),
+});
+
+export const walkInFamilyCodeSchema = z.object({
+  fullName: z.string().trim().min(2).max(100),
+  phoneNumber: z.string().regex(/^\+91[6-9]\d{9}$/, "Enter a valid Indian mobile number"),
 });
 
 export const leaveAlertSchema = z.union([

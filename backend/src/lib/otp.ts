@@ -28,7 +28,7 @@ function hashCode(phone: string, code: string): string {
 }
 
 /** Fixed-window counter; returns false once `max` is exceeded in the window. */
-async function withinLimit(key: string, max: number, windowSeconds: number): Promise<boolean> {
+export async function withinLimit(key: string, max: number, windowSeconds: number): Promise<boolean> {
   const count = await redis.incr(key);
   if (count === 1) await redis.expire(key, windowSeconds);
   return count <= max;

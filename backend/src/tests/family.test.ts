@@ -214,32 +214,6 @@ describe("messages about a family member", () => {
   });
 });
 
-describe("walk-ins for a family member", () => {
-  it("put the visit on the family member's record, so the desk and doctor see their name", async () => {
-    const { doctor, doctorToken, associateToken, holder } = await world();
-    await createSlotSoon(doctor.id, 5);
-    await createSlotSoon(doctor.id, 20);
-    const walkIn = (fullName: string) =>
-      request(app).post(`/doctors/${doctor.id}/walk-ins`).set(auth(associateToken)).send({ fullName, phoneNumber: holder.user.phoneNumber, feeCollected: true, consent: true });
-
-    const res = await walkIn("Asha  Sharma");
-    expect(res.status).toBe(201);
-    expect(res.body.patientName).toBe("Asha Sharma");
-    const a = await prisma.appointment.findUniqueOrThrow({ where: { id: res.body.appointmentId }, include: { patient: true } });
-    expect(a.patient).toMatchObject({ accountHolderId: holder.patient.id, userId: null, fullName: "Asha Sharma", consentSource: "desk" });
-    const queue = await request(app).get(`/doctors/${doctor.id}/queue`).set(auth(doctorToken));
-    expect(queue.body.queue[0].patientName).toBe("Asha Sharma");
-    const sms = await prisma.notification.findFirstOrThrow({ where: { userId: holder.user.id } });
-    expect(sms.payload).toMatch(/^Asha Sharma is checked in with Dr\. Test/);
-
-    // She now shows up in the holder's family, and her next walk-in reuses her record.
-    const family = await request(app).get("/me/patient/family").set(auth(holder.token));
-    expect(family.body.members).toMatchObject([{ id: a.patientId, fullName: "Asha Sharma" }]);
-    expect((await walkIn("asha sharma")).status).toBe(409); // already in today's queue, as herself
-    expect(await prisma.patient.count({ where: { accountHolderId: holder.patient.id } })).toBe(1);
-  });
-});
-
 describe("leave-now for a child's visit", () => {
   it("never reads a location: only typed travel minutes", async () => {
     const { doctor, holder } = await world();

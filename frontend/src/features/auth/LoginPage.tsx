@@ -384,7 +384,7 @@ function PatientOtpLogin() {
                 onChange={(e) => setConsent(e.target.checked)}
               />
               <span>
-                {t("I agree that MEDORA may store my name, phone number and appointment details to book and manage my visits, as described in the")}{" "}
+                {t("I agree that MEDORA may store my name, phone number and appointment details to book and manage my visits, and that the clinic I book with can see my phone number to contact me, as described in the")}{" "}
                 <Link to="/privacy" className="font-semibold text-brand-600 underline">{t("Privacy policy")}</Link>.{" "}
                 {t("I can download or delete my data at any time from my profile.")}
               </span>

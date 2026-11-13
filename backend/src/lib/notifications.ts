@@ -59,6 +59,7 @@ export async function sendNotification(params: {
 /**
  * Texts about a patient. A family member has no phone of their own, so the
  * message goes to their account holder and names them ("Reminder for Asha").
+ * A separate desk walk-in record (walkInPhone) gets no messages.
  */
 export async function notifyPatient(params: {
   patientId: string;
@@ -67,6 +68,8 @@ export async function notifyPatient(params: {
   dedupeKey?: string;
 }): Promise<boolean> {
   const patient = await prisma.patient.findUniqueOrThrow({ where: { id: params.patientId }, select: contactSelect });
+  // A separate desk walk-in record has no account to text: the desk tells them in person.
+  if (!patient.userId && !patient.accountHolder) return false;
   return sendNotification({
     userId: accountUserId(patient),
     patientId: patient.id,

@@ -37,6 +37,14 @@ const DOCS: Record<"privacy" | "terms", Doc> = {
         body: msg("For a family member under 18 you act as their parent or legal guardian and give consent on their behalf; we record that you did and when. We collect no tracking or behavioural data about children: a child's visit never uses location (leave-now alerts take only the travel time you type), and their data is never used for profiling or advertising."),
       },
       {
+        heading: msg("Your phone number and the clinic"),
+        body: msg("The doctor and front desk of the clinic you book with can see the phone number on your booking (yours, including as the contact for a family member you book for) so they can reach you about the visit. Every time clinic staff view these numbers it is recorded in an audit log."),
+      },
+      {
+        heading: msg("Added at the front desk"),
+        body: msg("If you come in without the app, the front desk can add you with your name and a phone number. If that number belongs to someone's MEDORA account, you are added to their family only if the account holder confirms with a code sent to their phone. Otherwise your visit is kept as a separate record with the name and number you gave, it is not linked to that account and no messages are sent. Ask the clinic to see or delete a separate record."),
+      },
+      {
         heading: msg("Who can see it"),
         body: msg("Only the clinic staff (doctors, front-desk associates and clinic admins) of the clinic you book with. Every staff action on patient data is recorded in an audit log."),
       },

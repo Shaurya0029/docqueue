@@ -64,12 +64,22 @@ export interface WalkInResult {
   token: number;
   slotStartsAt: string;
   patientName: string;
+  /** Whose record the visit went on; "standalone" = separate record, no SMS. */
+  linkedTo: "new-account" | "account-holder" | "family-member" | "standalone";
+}
+
+/** Texts the number's account holder a code confirming the walk-in is their family member. */
+export function useRequestFamilyCode(doctorId: string | null) {
+  return useMutation({
+    mutationFn: async (body: { fullName: string; phoneNumber: string }) =>
+      (await api.post<{ sent: true }>(`/doctors/${doctorId}/walk-ins/family-code`, body)).data,
+  });
 }
 
 export function useAddWalkIn(doctorId: string | null) {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (body: { fullName: string; phoneNumber: string; feeCollected: boolean; consent: true }) =>
+    mutationFn: async (body: { fullName: string; phoneNumber: string; feeCollected: boolean; consent: true; familyCode?: string }) =>
       (await api.post<WalkInResult>(`/doctors/${doctorId}/walk-ins`, body)).data,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["doctor-queue", doctorId] }),
   });

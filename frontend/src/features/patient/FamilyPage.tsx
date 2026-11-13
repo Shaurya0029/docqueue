@@ -111,8 +111,8 @@ function MemberForm({ member, onDone }: { member?: FamilyMember; onDone: () => v
         <input type="checkbox" className="mt-0.5 h-5 w-5 shrink-0 accent-brand-600" checked={consent} onChange={(e) => setConsent(e.target.checked)} />
         <span>
           {minor
-            ? t("I am {name}'s parent or legal guardian. As their guardian, I consent to MEDORA and the clinics they visit using their name, age and appointment details to book and manage their visits. Nothing about a child's location or behaviour is collected.", { name: who })
-            : t("{name} has agreed that I may book for them and that MEDORA and the clinics they visit may use their name, age and appointment details to manage their visits.", { name: who })}{" "}
+            ? t("I am {name}'s parent or legal guardian. As their guardian, I consent to MEDORA and the clinics they visit using their name, age and appointment details to book and manage their visits; the clinic sees my phone number as their contact. Nothing about a child's location or behaviour is collected.", { name: who })
+            : t("{name} has agreed that I may book for them and that MEDORA and the clinics they visit may use their name, age and appointment details to manage their visits; the clinic sees my phone number as their contact.", { name: who })}{" "}
           <Link to="/privacy" className="font-semibold text-brand-600 underline">
             {t("Privacy policy")}
           </Link>
