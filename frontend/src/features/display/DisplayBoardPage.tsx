@@ -3,7 +3,7 @@ import { useParams, useSearchParams } from "react-router-dom";
 import { translate, type Vars } from "../../lib/i18n";
 
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:4000";
-const WS_URL = import.meta.env.VITE_WS_URL ?? "ws://localhost:4000/ws";
+import { WS_URL } from "../../lib/wsUrl";
 /** Poll this often while the live connection is down, and once a minute anyway as a safety net. */
 const POLL_DISCONNECTED_MS = 10_000;
 const POLL_CONNECTED_MS = 60_000;

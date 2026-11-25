@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getAccessToken } from "./session";
 
-const WS_URL = import.meta.env.VITE_WS_URL ?? "ws://localhost:4000/ws";
+import { WS_URL } from "./wsUrl";
 
 /**
  * Opens a WebSocket subscribed to one doctor's queue channel and invalidates
